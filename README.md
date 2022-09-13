@@ -1,4 +1,4 @@
-# RED-V Ultrasonic sensor development project
+# RED-V Ultrasonic sensor project
 
 Useful links:  
 
