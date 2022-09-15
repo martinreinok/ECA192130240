@@ -23,7 +23,6 @@ volatile uint32_t *GPIO_INPUT_EN 	= (uint32_t*)0x10012004;
 volatile uint32_t *GPIO_OUTPUT_VAL 	= (uint32_t*)0x1001200C;
 volatile uint32_t *GPIO_OUTPUT_EN 	= (uint32_t*)0x10012008;
 
-
 int main() {
 
 	*GPIO_INPUT_EN |= (1 << 9);			// Enable GPIO as input at pin 15 (Echo-Pin)(GPIO 9)
@@ -34,22 +33,22 @@ int main() {
 	while(1){
 
 		*GPIO_OUTPUT_VAL |= (1 << 1);		// Sets pin 1 HIGH
-		printf("PIN 15 ON. \n");
 		int timeStart = save_rtc_low();
-		printf("\r timeStart. %d	\n", timeStart);
 		*GPIO_OUTPUT_VAL &= ~(1 << 1);		// Sets pin 1 LOW
-		printf("PIN 15 OFF. \n");
+
 		while(!((*GPIO_INPUT_VAL >> 9) & 0b1));
+		int timeStop = save_rtc_low();
+		int timeDiff = timeStop - timeStart;
+		printf("\r TimeStop: %d. TimeStart: %d. TimeDiff: %d.\n ", timeStop, timeStart, timeDiff);
+
+		//while(!((*GPIO_INPUT_VAL >> 9) & 0b1) & ((save_rtc_low() - timeStart) <= 100000));
+		/*
 		if(((*GPIO_INPUT_VAL >> 9) & 0b1)){
 			int timeStop = save_rtc_low();
-			printf("\r TimeStop %d	\n", timeStop);
 			int timeDiff = timeStop - timeStart;
-			printf("\r timeDiff. %d	\n", timeDiff);
 			int length = timeDiff/58;
-			printf("Got distance. %d \n",length);
+			printf("\r TimeStop: %d. TimeStart: %d. TimeDiff: %d. Got distance: %d. \n ", timeStop, timeStart, timeDiff, length);
 		}
-		//delay(20000);
-
-
+		*/
 	}
 }
