@@ -22,7 +22,6 @@ volatile uint32_t *GPIO_INPUT_VAL 	= (uint32_t*)0x10012000;
 volatile uint32_t *GPIO_INPUT_EN 	= (uint32_t*)0x10012004;
 volatile uint32_t *GPIO_OUTPUT_VAL 	= (uint32_t*)0x1001200C;
 volatile uint32_t *GPIO_OUTPUT_EN 	= (uint32_t*)0x10012008;
-int G_ClockFrequency = 32768;
 
 int main() {
 
@@ -36,7 +35,8 @@ int main() {
 		*GPIO_OUTPUT_VAL |= (1 << 1);		// Sets pin 1 HIGH
 
 		*GPIO_OUTPUT_VAL &= ~(1 << 1);		// Sets pin 1 LOW
-		printf("\r Clock value: %d \n", save_rtc_low()/G_ClockFrequency/1000000);
+
+		printf("\r Clock value: %d \n", get_rtc_low_micro());
 		/*
 		while(!((*GPIO_INPUT_VAL >> 9) & 0b1));
 		int timeStart = save_rtc_low();
