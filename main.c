@@ -22,6 +22,7 @@ volatile uint32_t *GPIO_INPUT_VAL 	= (uint32_t*)0x10012000;
 volatile uint32_t *GPIO_INPUT_EN 	= (uint32_t*)0x10012004;
 volatile uint32_t *GPIO_OUTPUT_VAL 	= (uint32_t*)0x1001200C;
 volatile uint32_t *GPIO_OUTPUT_EN 	= (uint32_t*)0x10012008;
+int G_ClockFrequency = 32768;
 
 int main() {
 
@@ -33,14 +34,17 @@ int main() {
 	while(1){
 
 		*GPIO_OUTPUT_VAL |= (1 << 1);		// Sets pin 1 HIGH
-		int timeStart = save_rtc_low();
-		*GPIO_OUTPUT_VAL &= ~(1 << 1);		// Sets pin 1 LOW
 
+		*GPIO_OUTPUT_VAL &= ~(1 << 1);		// Sets pin 1 LOW
+		printf("\r Clock value: %d \n", save_rtc_low()/G_ClockFrequency/1000000);
+		/*
 		while(!((*GPIO_INPUT_VAL >> 9) & 0b1));
+		int timeStart = save_rtc_low();
+		while(!((*GPIO_INPUT_VAL >> 9) & 0b0) & ((save_rtc_low() - timeStart) <= 100000));
 		int timeStop = save_rtc_low();
 		int timeDiff = timeStop - timeStart;
-		printf("\r TimeStop: %d. TimeStart: %d. TimeDiff: %d.\n ", timeStop, timeStart, timeDiff);
-
+		printf("\r TimeStart: %d. TimeStop: %d. TimeDiff: %d.\n ", timeStart/32000, timeStop/32000, timeDiff);
+		*/
 		//while(!((*GPIO_INPUT_VAL >> 9) & 0b1) & ((save_rtc_low() - timeStart) <= 100000));
 		/*
 		if(((*GPIO_INPUT_VAL >> 9) & 0b1)){
