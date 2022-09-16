@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
-
+#include "BIT_OPS.h"
 #include "RTC.h"
 
 //custom write delay function since we do not have one like an Arduino
@@ -24,17 +24,14 @@ volatile uint32_t *GPIO_OUTPUT_VAL 	= (uint32_t*)0x1001200C;
 volatile uint32_t *GPIO_OUTPUT_EN 	= (uint32_t*)0x10012008;
 
 int main() {
-
-	*GPIO_INPUT_EN |= (1 << 9);			// Enable GPIO as input at pin 15 (Echo-Pin)(GPIO 9)
-	*GPIO_OUTPUT_EN |= (1 << 11);		// Enable GPIO as input at pin 17 (PWM-Servo)(GPIO 11)
-	*GPIO_OUTPUT_EN |= (1 << 1);		// Enable GPIO as output at pin 9 (TRIG-pin)(GPIO 1)
+	set_bit_high(*GPIO_INPUT_EN, 9); 	// Enable GPIO as input at pin 15 (Echo-Pin)(GPIO 9)
+	set_bit_high(*GPIO_INPUT_EN, 11); 	// Enable GPIO as input at pin 17 (PWM-Servo)(GPIO 11)
+	set_bit_high(*GPIO_INPUT_EN, 1);	// Enable GPIO as output at pin 9 (TRIG-pin)(GPIO 1)
 	rtc_setup();
 
 	while(1){
-
-		*GPIO_OUTPUT_VAL |= (1 << 1);		// Sets pin 1 HIGH
-
-		*GPIO_OUTPUT_VAL &= ~(1 << 1);		// Sets pin 1 LOW
+		set_bit_high(*GPIO_OUTPUT_VAL, 1); 	// Sets pin 1 HIGH
+		set_bit_low(*GPIO_OUTPUT_VAL, 1);	// Sets pin 1 LOW
 
 		printf("\r Clock value: %d \n", get_rtc_low_micro());
 		/*
