@@ -72,10 +72,10 @@ int main() {
 		while ( !(get_bit(*GPIO_INPUT_EN, 9) == 1)){
 			
 			if (get_rtc_low() > start_time + sensor_timeout){
-                //Signal timeout
-                timeout = true;
-                break;
-		}
+                		//Signal timeout
+                		timeout = true;
+                		break;
+			}
 		
 		// Only save value if sensor did not timeout
 		if (!timeout){
