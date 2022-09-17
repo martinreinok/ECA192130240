@@ -79,10 +79,10 @@ int main() {
 		
 		// Only save value if sensor did not timeout
 		if (!timeout){
-            int end_time = get_rtc_low();
-            printf("Received signal: %d, %d\n", end_time-start_time, motor_angle);
-            save_measurement(end_time-start_time, motor_angle);
-        }
+            		int end_time = get_rtc_low();
+            		printf("Received signal: %d, %d\n", end_time-start_time, motor_angle);
+            		save_measurement(end_time-start_time, motor_angle);
+        	}
 		
 		// Print results in terminal
 		// stream_output(int distance, int angle);
@@ -95,8 +95,8 @@ int main() {
 		
 		Print all array distances:
 		for(int i=0; i<array_element_index; i++){
-            printf("Array distance[%d]: %d\n", i, measurements[i].distance);
-        }
+            	printf("Array distance[%d]: %d\n", i, measurements[i].distance);
+        	}
 		
 		Sort the array:
 		bubble_sort(measurements, array_element_index);
