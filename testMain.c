@@ -23,8 +23,9 @@ int main() {
 		//*GPIO_OUTPUT_VAL |= (1 << 1);		// Sets GPIO 1 HIGH
 		//startTime = get_rtc_low_micro();
 		//printf("\r start Time: %u.\n ",startTime);
-		printf("\r start Time: %u.\n ",get_rtc_low_milli());
-		printf("\r start Time: %u.\n ",*RTC_OUTPUT_LOW);
+
+		printf("\r Reg: %u. ms: %u\n ",*RTC_OUTPUT_LOW, get_rtc_low_milli());
+		printf("\r Reg: %u. us: %u\n ",*RTC_OUTPUT_LOW, get_rtc_low_micro());
 		/*
 		uint64_t tDelay = get_rtc_low_milli() + 10;
 		while(!(get_rtc_low_milli() >= tDelay));
