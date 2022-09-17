@@ -2,7 +2,7 @@
 
 Useful links:  
 
-[Project Description](ECA Project 1 Description.pdf)
+[Project Description](https://github.com/martinreinok/red-v-project/blob/main/ECA%20Project%201%20Description.pdf)
 
 [Sparkfun Development Guide](https://learn.sparkfun.com/tutorials/red-v-development-guide)  
 
