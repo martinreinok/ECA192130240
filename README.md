@@ -2,6 +2,8 @@
 
 Useful links:  
 
+[Project Description](./ECA Project 1 Description.pdf)
+
 [Sparkfun Development Guide](https://learn.sparkfun.com/tutorials/red-v-development-guide)  
 
 [Writing the report using Overleaf](https://www.overleaf.com/8795588922mwymcdbbwtnq)  
