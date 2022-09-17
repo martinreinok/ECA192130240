@@ -9,3 +9,6 @@ Bit Operations
 
 // Set data.bit to 0
 #define set_bit_low(data, bit)  data &= ~(1 << bit)
+
+// Return bit range
+#define get_bit_range(data, start_bit, end_bit) ((data >> start_bit) & ((1 << (end_bit - start_bit)) - 1))
