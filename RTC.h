@@ -16,9 +16,8 @@ void rtc_setup() {
 }
 
 
-uint32_t get_rtc_low() {
-
-	volatile uint32_t rtc_low_value = *RTC_OUTPUT_LOW;
+uint64_t get_rtc_low() {
+	volatile uint64_t rtc_low_value = *RTC_OUTPUT_LOW;
 	return rtc_low_value;
 }
 
