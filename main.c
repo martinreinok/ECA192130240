@@ -58,7 +58,7 @@ int main() {
 		delay_us(10);
 		set_bit_low(*GPIO_OUTPUT_VAL, 1);				// Set pin LOW
 
-
+		// Measure the time until rising edge
 		uint32_t distance = read_echo()/58;
 
 		printf("\rObject distance: %d\n", distance);
