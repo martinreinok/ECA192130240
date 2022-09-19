@@ -58,7 +58,7 @@ int main() {
 		delay_us(10);
 		set_bit_low(*GPIO_OUTPUT_VAL, 1);				// Set pin LOW
 
-		// Measure the time until rising edge
+
 		uint32_t distance = read_echo()/58;
 
 		printf("\rObject distance: %d\n", distance);
@@ -106,6 +106,9 @@ uint32_t read_echo(){
 			return 0;
 		}
 	}
+	// Measure rising -> falling edge of signal
+	start_time = get_rtc_low_micro();
+	while (((*GPIO_INPUT_VAL >> 9) & 0b1)){}
 	return get_rtc_low_micro() - start_time;
 }
 
