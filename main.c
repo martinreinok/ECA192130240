@@ -31,8 +31,8 @@ struct Measurement measurements [ARRAY_MAX_SIZE] = {}; // Up to 65 measurements 
 uint32_t array_element_index = 0;
 uint32_t motor_angle = 0;
 uint32_t speed_of_sound = 340; // cm/s
-uint32_t sensor_timeout = 50000;  // Units ?
-uint32_t loopTime = 60000;
+uint32_t sensor_timeout = 60000;  // Units ?
+uint32_t loopTime = 80000;
 
 
 /*PIN DECLARATIONS*/
