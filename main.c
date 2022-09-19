@@ -12,10 +12,10 @@ struct Measurement{
     int angle;
 };
 
-
 /*GLOBAL DEFINES*/
 #define ARRAY_MAX_SIZE 65
-
+#define TRIG_PIN 1
+#define ECHO_PIN 9
 
 /*FUNCTION DECLARATIONS*/
 void save_measurement(int time, int angle);
@@ -26,12 +26,13 @@ uint32_t read_echo();
 
 
 
-/*VARIABLES*/
+/*Global VARIABLES*/
 struct Measurement measurements [ARRAY_MAX_SIZE] = {}; // Up to 65 measurements in the array
-int array_element_index = 0;
-int motor_angle = 0;
-int speed_of_sound = 34300; // cm/s
-int sensor_timeout = 1000000;  // Units ?
+uint32_t array_element_index = 0;
+uint32_t motor_angle = 0;
+uint32_t speed_of_sound = 340; // cm/s
+uint32_t sensor_timeout = 50000;  // Units ?
+uint32_t loopTime = 60000;
 
 
 /*PIN DECLARATIONS*/
@@ -39,84 +40,86 @@ volatile uint32_t *GPIO_INPUT_VAL 	= (uint32_t*)0x10012000;
 volatile uint32_t *GPIO_INPUT_EN 	= (uint32_t*)0x10012004;
 volatile uint32_t *GPIO_OUTPUT_VAL 	= (uint32_t*)0x1001200C;
 volatile uint32_t *GPIO_OUTPUT_EN 	= (uint32_t*)0x10012008;
+volatile uint32_t *GPIO_PUE 		= (uint32_t*)0x10012010;
+volatile uint32_t *IOF_EN 			= (uint32_t*)0x10012038;
+volatile uint32_t *IOF_EN_SEL 		= (uint32_t*)0x1001203C;
+
+uint32_t read_echo();
+
+void delay_us(uint32_t delay_in_us);
 
 
 int main() {
-	set_bit_high(*GPIO_INPUT_EN, 9); 	// Enable GPIO as input at pin 15 (Echo-Pin)(GPIO 9)
-	set_bit_high(*GPIO_INPUT_EN, 11); 	// Enable GPIO as input at pin 17 (PWM-Servo)(GPIO 11)
-	set_bit_high(*GPIO_INPUT_EN, 1);	// Enable GPIO as output at pin 9 (TRIG-pin)(GPIO 1)
+	*IOF_EN &= ~(1<<9);
+	*GPIO_OUTPUT_EN &= ~(1<<ECHO_PIN);
+	*GPIO_INPUT_EN |= (1<<ECHO_PIN);
+	*GPIO_PUE |= (1<<ECHO_PIN);
+	set_bit_high(*GPIO_OUTPUT_EN, TRIG_PIN);	// Enable GPIO as output at pin 9 (TRIG-pin)(GPIO 1)
+
+
 	rtc_setup();
+
 	// Initialize servo
 	// Move servo to starting position 1 / 65
 
 	while(1) {
 
 		// Trigger sensor
-		set_bit_low(*GPIO_OUTPUT_VAL, 1);				// Set pin LOW
+
+		set_bit_low(*GPIO_OUTPUT_VAL, TRIG_PIN);				// Set pin LOW
 		delay_us(10);
-		set_bit_high(*GPIO_OUTPUT_VAL, 1); 				// Set pin HIGH
+		set_bit_high(*GPIO_OUTPUT_VAL, TRIG_PIN); 				// Set pin HIGH
 		delay_us(10);
-		set_bit_low(*GPIO_OUTPUT_VAL, 1);				// Set pin LOW
+		set_bit_low(*GPIO_OUTPUT_VAL, TRIG_PIN);				// Set pin LOW
 
+		uint32_t distance = (read_echo() * speed_of_sound)/2000;
 
-		uint32_t distance = read_echo()/58;
+		printf("\r Distance mm: %u\n", distance);
 
-		printf("\rObject distance: %d\n", distance);
+		while(get_rtc_low_micro() <= loopTime);
 
 		// Measurement should only be saved if value > 0
 		// save_measurement(end_time-start_time, motor_angle);
 
-
-
 		// Print results in terminal
 		// stream_output(int distance, int angle);
-
 
 		// Move motor to next position here
 
 		// If measurements are over
-		/*
 
+		/*
 		Print all array distances:
 		for(int i=0; i<array_element_index; i++){
             	printf("Array distance[%d]: %d\n", i, measurements[i].distance);
         	}
-
 		Sort the array:
 		bubble_sort(measurements, array_element_index);
-
-
 		*/
 	}
 }
 
-
-
-/*FUNCTIONS*/
-
 uint32_t read_echo(){
-
-	uint32_t start_time = get_rtc_low_micro();
 	uint32_t timeout = get_rtc_low_micro() + sensor_timeout;
-
-	while (!((*GPIO_INPUT_VAL >> 9) & 0b1)){
-		printf("\rWaiting for signal\n");
-		if (get_rtc_low_micro() > timeout){
-			printf("\rTimeout\n");
-			return 0;
-		}
+	while(!((*GPIO_INPUT_VAL >> ECHO_PIN) & 0b1));
+	uint32_t startTime = get_rtc_low_micro();
+	while(((*GPIO_INPUT_VAL >> ECHO_PIN) & 0b1));
+	uint32_t stopTime = get_rtc_low_micro();
+	if(get_rtc_low_micro() >= timeout){
+		printf("\r Sensor Timeout: %u \n", get_rtc_low_micro());
+		return(0);
 	}
-	// Measure rising -> falling edge of signal
-	start_time = get_rtc_low_micro();
-	while (((*GPIO_INPUT_VAL >> 9) & 0b1)){}
-	return get_rtc_low_micro() - start_time;
+	else {
+		printf("\r Got Value\n");
+		return(stopTime - startTime);
+	}
 }
+
 
 void delay_us(uint32_t delay_in_us){
 	int wait_time = get_rtc_low_micro() + delay_in_us;
-	while (get_rtc_low_micro() <= wait_time) {}
+	while (get_rtc_low_micro() <= wait_time);
 }
-
 
 void save_measurement(int time, int angle){
     // uint32_t distance = (speed_of_sound * time)/2;
@@ -163,4 +166,3 @@ void bubble_sort(struct Measurement *array, int array_size) {
         printf("Array angle sorted[%d]: %d\n", i, array[i].angle);
     }
 }
-
