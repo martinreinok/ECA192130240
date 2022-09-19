@@ -21,7 +21,7 @@ struct Measurement measurements [ARRAY_MAX_SIZE] = {}; // Up to 65 measurements 
 int array_element_index = 0;
 int motor_angle = 0;
 const int speed_of_sound = 34300; // cm/s
-const int sensor_timeout = 4000;  // Units ?
+const int sensor_timeout = 1000000;  // Units ?
 
 
 /*PIN DECLARATIONS*/
@@ -29,23 +29,9 @@ volatile uint32_t *GPIO_INPUT_VAL 	= (uint32_t*)0x10012000;
 volatile uint32_t *GPIO_INPUT_EN 	= (uint32_t*)0x10012004;
 volatile uint32_t *GPIO_OUTPUT_VAL 	= (uint32_t*)0x1001200C;
 volatile uint32_t *GPIO_OUTPUT_EN 	= (uint32_t*)0x10012008;
-
-/*
-
-//custom write delay function since we do not have one like an Arduino
-void delay(int number_of_microseconds){ //not actually number of seconds
-
-// Converting time into multiples of a hundred nS
-int hundred_ns = 10 * number_of_microseconds;
-
-// Storing start time
-clock_t start_time = clock();
-
-// looping till required time is not achieved
-while (clock() < start_time + hundred_ns);
-
-}
-*/
+volatile uint32_t *GPIO_PUE 		= (uint32_t*)0x10012010;
+volatile uint32_t *IOF_EN 			= (uint32_t*)0x10012038;
+volatile uint32_t *IOF_EN_SEL 		= (uint32_t*)0x1001203C;
 
 /*FUNCTION DECLARATIONS*/
 void save_measurement(int time, int angle);
@@ -53,14 +39,36 @@ void stream_output(int distance, int angle);
 void bubble_sort(struct Measurement *array, int array_size);
 
 
+/*
 int main() {
-	set_bit_high(*GPIO_INPUT_EN, 9); 	// Enable GPIO as input at pin 15 (Echo-Pin)(GPIO 9)
+	*IOF_EN &= ~(1<<9);
+	*GPIO_OUTPUT_EN &= ~(1<<9);
+	*GPIO_INPUT_EN |= (1<<9);
+	*GPIO_PUE |= (1<<9);
+
+	while(1) {
+		while(!((*GPIO_INPUT_VAL >> 9) & 0b1)){
+			printf("\r No Input \n");
+		}
+		printf("\r Reg Val %d \n", *GPIO_INPUT_VAL);
+	}
+}
+*/
+
+int main() {
+	*IOF_EN &= ~(1<<9);
+	*GPIO_OUTPUT_EN &= ~(1<<9);
+	*GPIO_INPUT_EN |= (1<<9);
+	*GPIO_PUE |= (1<<9);
+	//set_bit_high(*GPIO_INPUT_EN, 9); 	// Enable GPIO as input at pin 15 (Echo-Pin)(GPIO 9)
+	//set_bit_high(*GPIO_INPUT_EN, 10); 	// Enable GPIO as input at pin 16 (Echo-Pin)(GPIO 9)
 	//set_bit_high(*GPIO_INPUT_EN, 11); 	// Enable GPIO as input at pin 17 (PWM-Servo)(GPIO 11)
 	set_bit_high(*GPIO_OUTPUT_EN, 1);	// Enable GPIO as output at pin 9 (TRIG-pin)(GPIO 1)
+	//set_bit_high(*GPIO_PUE, 9);
 
 	rtc_setup();
 	// Initialize servo
-	// Move servo to starting position 1 / 65
+	// Move servo to starting position 1 / 65s
 
 	while(1) {
 		bool timeout = false;
@@ -72,26 +80,36 @@ int main() {
 
 		// Get starting time
 		int start_time = get_rtc_low_micro();
-		printf("\r Start us: %u\n", get_rtc_low_micro());
+		//printf("\r Start us: %u\n", get_rtc_low_micro());
 		// Wait for sensor signal or timeout
-		while (timeout == false){
-			int echoIn = (*GPIO_INPUT_VAL >> 9) & 0b1;
+		while (((*GPIO_INPUT_VAL >> 9) & 0b1)){
 			if (get_rtc_low_micro() >= start_time + sensor_timeout){
 				//Signal timeout
 				printf("\r TimeOut \n");
 				timeout = true;
 				break;
 			}
+		
 
+		int waitTime = get_rtc_low_micro() + 10;
+		// Trigger Ultrasound sensor
+		set_bit_high(*GPIO_OUTPUT_VAL, 1); 	// Sets pin 1 HIGH
+		while(get_rtc_low_micro() <= waitTime);
+		set_bit_low(*GPIO_OUTPUT_VAL, 1);	// Sets pin 1 LOW
+
+		while (((*GPIO_INPUT_VAL >> 9) & 0b1));
+		int start_time = get_rtc_low_micro();
+		while (!((*GPIO_INPUT_VAL >> 9) & 0b1));
+		int end_time = get_rtc_low_micro();
+
+		printf("\r Received signal: %d\n", end_time-start_time);
+
+		int waitTimeResult = get_rtc_low_micro() + 1000000;
+		while(get_rtc_low_micro() <= waitTimeResult);
+
+		//printf("\r Reg Val Input %u \n", *GPIO_INPUT_VAL);
+		/*
 		// Only save value if sensor did not timeout
-			if (echoIn >= 1){
-				int end_time = get_rtc_low_micro();
-				printf("\r Stop us: %u\n", get_rtc_low_micro());
-				printf("\r Received signal: %d, %d\n", end_time-start_time, motor_angle);
-				save_measurement(end_time-start_time, motor_angle);
-				echoIn = 0;
-				break;
-			}
 
 		// Print results in terminal
 		// stream_output(int distance, int angle);
@@ -100,7 +118,7 @@ int main() {
 		// Move motor to next position here
 
 		// If measurements are over
-		/*
+
 
 		Print all array distances:
 		for(int i=0; i<array_element_index; i++){
@@ -109,16 +127,25 @@ int main() {
 
 		Sort the array:
 		bubble_sort(measurements, array_element_index);
+		 */
 
 
-		*/
 		}
-	}
+	/*
+		if (!timeout){
+			//printf("\r Reg Val %d \n", *GPIO_INPUT_VAL);
+			int end_time = get_rtc_low_micro();
+			//printf("\r Stop us: %u\n", get_rtc_low_micro());
+			printf("\r Received signal: %d, %d\n", end_time-start_time, motor_angle);
+			//save_measurement(end_time-start_time, motor_angle);
+		}
+	}*/
 }
 
 
 
 /*FUNCTIONS*/
+
 void save_measurement(int time, int angle){
     // uint32_t distance = (speed_of_sound * time)/2;
     measurements[array_element_index].distance = time;
@@ -164,7 +191,6 @@ void bubble_sort(struct Measurement *array, int array_size) {
         printf("\r Array angle sorted[%d]: %d\n", i, array[i].angle);
     }
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 // OLD PROGRAM
