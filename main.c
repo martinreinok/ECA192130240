@@ -13,10 +13,12 @@ struct Measurement{
     int angle;
 };
 
+
 /*PIN DEFINES*/
 #define TRIG_PIN 1		// Trigger pin at GPIO 1 (pin 9) (OUTPUT)
 #define ECHO_PIN 9		// Echo pin at GPIO 9 (pin 15) (INPUT)
 #define SERVO_PIN 11	// Servo pin at GPIO 11 (pin 17) (OUTPUT)
+
 
 /*FUNCTION DECLARATIONS*/
 void setInputPin(uint32_t pinNumber);
@@ -32,7 +34,6 @@ void setContinuousPWM(uint32_t pinNumber, uint32_t frequency, uint32_t dutyCycle
 uint32_t angleToDutyCycle(uint32_t motorAngle);
 void save_measurement(int distance, int angle);
 void stream_output(uint32_t distance, uint32_t angle);
-void bubble_sort(struct Measurement *array, int array_size);
 void delay_us(uint32_t delay_in_us);
 uint32_t read_echo();
 uint32_t calcMotorAngle(uint32_t curposition, bool curDirection);
@@ -49,8 +50,7 @@ uint32_t calcNewPosition(uint32_t curposition, bool curDirection);
 #define triggerDutyCycle 50000
 #define triggerPWMFreq 20000
 static uint32_t BASE_FREQUENCY = 16000000;
-struct Measurement measurements [MeasurementAmount] = {}; // Up to 65 measurements in the array
-static uint32_t array_element_index = 0;
+struct Measurement closestPositions [3] = {}; // Closest positions measured
 static uint32_t speed_of_sound = 340; // cm/s
 static uint32_t sensor_timeout = 25000;  // Units ?
 static uint32_t loopTime = 60000;
@@ -125,10 +125,11 @@ int main() {
 				*/
 				printf("\r \n");
 				printf("\r Current measurement: %u \n", measurement);
+				
 				// Print results in terminal
 				stream_output(distance, motor_angle);
-				// Measurement should only be saved if value > 0
 				save_measurement(distance, motor_angle);
+		        printf("\r First: %d (%d), Second: %d (%d), Third: %d (%d) \n", closestPositions[0].distance, closestPositions[0].angle, closestPositions[1].distance, closestPositions[1].angle, closestPositions[2].distance, closestPositions[2].angle);
 
 				setDutyCycle2(calcNewPosition(measurement, sweepDirection));
 			}
@@ -283,10 +284,21 @@ void setContinuousPWM(uint32_t pinNumber, uint32_t frequency, uint32_t dutyCycle
 }
 
 void save_measurement(int distance, int angle){
-    // uint32_t distance = (speed_of_sound * time)/2;
-    measurements[array_element_index].distance = distance;
-    measurements[array_element_index].angle = angle;
-    array_element_index++;
+	for(int i = 0; i<3; i++){
+
+		// Fill empty array with first measurements
+		if(!closestPositions[i].distance){
+			closestPositions[i].distance = distance;
+			closestPositions[i].angle = angle;
+			break;
+		}
+		// Replace position if it is smaller than current (and is not 0 because 0 means error)
+		if(distance < closestPositions[i].distance && distance != 0){
+			closestPositions[i].distance = distance;
+			closestPositions[i].angle = angle;
+			break;
+		}
+	}
 }
 
 void stream_output(uint32_t distance, uint32_t angle){
@@ -294,39 +306,6 @@ void stream_output(uint32_t distance, uint32_t angle){
     printf("\r Results:\n");
     printf("\r Distance: %u\n", distance);
     printf("\r MotorAngle: %u\n", angle);
-}
-
-void bubble_sort(struct Measurement *array, int array_size) {
-
-    for(int i = 0; i<array_size; i++) {
-        int swaps = 0;         //flag to detect any swap is there or not
-        for(int j = 0; j<array_size-i-1; j++) {
-            if(array[j].distance > array[j+1].distance) {       //when the current item is bigger than next
-                // Swap distance
-                //printf("Swap %d with %d\n", array[j].distance, array[j+1].distance);
-                int temp;
-                temp = array[j].distance;
-                array[j].distance = array[j+1].distance;
-                array[j+1].distance = temp;
-
-                // Swap angle
-                temp = array[j].angle;
-                array[j].angle = array[j+1].angle;
-                array[j+1].angle = temp;
-
-                swaps = 1;    //set swap flag
-            }
-        }
-
-        if(!swaps){
-            break; // No swap in this pass, so array is sorted
-        }
-    }
-    // Print result
-    for(int i=0; i<array_size; i++){
-        printf("Array distance sorted[%d]: %d\n", i, array[i].distance);
-        printf("Array angle sorted[%d]: %d\n", i, array[i].angle);
-    }
 }
 
 uint32_t read_echo(){
@@ -385,4 +364,3 @@ uint32_t calcNewPosition(uint32_t curposition, bool curDirection){
 		}
 	}
 }
-
