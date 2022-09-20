@@ -287,7 +287,7 @@ void save_measurement(int distance, int angle){
 	for(int i = 0; i<3; i++){
 
 		// Fill empty array with first measurements
-		if(!closestPositions[i].distance){
+		if(!closestPositions[i].distance && distance != 0){
 			closestPositions[i].distance = distance;
 			closestPositions[i].angle = angle;
 			break;
