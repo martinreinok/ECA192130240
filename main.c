@@ -24,6 +24,7 @@ struct Measurement{
 void setInputPin(uint32_t pinNumber);
 void setOutputPin(uint32_t pinNumber);
 void setPWMPin(uint32_t pinNumber);
+void initSensor();
 void setPWM1(uint32_t frequency, uint32_t dutyCycle);
 void setDutyCycle1(uint32_t dutyCycle);
 void resetSingleShot();
@@ -31,27 +32,28 @@ void setPWM2(uint32_t frequency, uint32_t dutyCycle);
 void setDutyCycle2(uint32_t dutyCycle);
 void setSingleShotPWM(uint32_t pinNumber, uint32_t frequency, uint32_t dutyCycle);
 void setContinuousPWM(uint32_t pinNumber, uint32_t frequency, uint32_t dutyCycle);
-uint32_t angleToDutyCycle(uint32_t motorAngle);
-void save_measurement(int distance, int angle);
+void save_measurement(int distance, int angle, uint32_t measurement);
+void streamMeasurements();
 void stream_output(uint32_t distance, uint32_t angle);
-void delay_us(uint32_t delay_in_us);
 uint32_t read_echo();
-uint32_t calcMotorAngle(uint32_t curposition, bool curDirection);
+float calcMotorAngle(uint32_t curposition, bool curDirection);
 uint32_t calcNewPosition(uint32_t curposition, bool curDirection);
 
 
 /*Global VARIABLES*/
 #define MeasurementAmount 65
 #define sweepAmount 3
+#define amountClosest 3
 #define ServoPWMFreq 200
 #define minDutyCycle 10000
 #define maxDutyCycle 37950
-#define maxServoAngle 135
+#define maxServoAngle 120
 #define triggerDutyCycle 50000
 #define triggerPWMFreq 20000
 static uint32_t BASE_FREQUENCY = 16000000;
-struct Measurement closestPositions [3] = {}; // Closest positions measured
-static uint32_t speed_of_sound = 340; // cm/s
+struct Measurement closestPositions [MeasurementAmount] = {}; // All the closest positions measured
+struct Measurement closestMeasurements[amountClosest] = {}; // 3 Closest positions measured
+static uint32_t speed_of_sound = 343; // m/s
 static uint32_t sensor_timeout = 25000;  // Units ?
 static uint32_t loopTime = 60000;
 bool sweepDirection = false;		// Direction of sweep
@@ -82,77 +84,124 @@ volatile uint32_t *PWM2_1_CMP3		= (uint32_t*)0x1003502C;		// Registry for PWM CO
 
 int main() {
 	setInputPin(ECHO_PIN);
+
 	// Initialize One shot pwm at Trigger pin
 	setSingleShotPWM(TRIG_PIN, triggerPWMFreq, triggerDutyCycle);
 	// Initialize servo
 	// Move servo to starting position 1 / 65
-	setContinuousPWM(SERVO_PIN, ServoPWMFreq, minDutyCycle);
+	setContinuousPWM(SERVO_PIN, ServoPWMFreq, minDutyCycle);	// Minimum position of rotation.
+
 	rtc_setup();
 
-	while(1) {
-		uint32_t sweep;
+	initSensor(); // Stabilizes the sensor output
 
-		for(sweep = 1; sweep <- sweepAmount; sweep ++){
-			uint32_t measurement;
+	uint32_t sweep;
 
-			for(measurement = 0; measurement <= MeasurementAmount; measurement ++){
-				uint32_t motor_angle = calcMotorAngle(measurement + 1, sweepDirection);
+	for(sweep = 1; sweep <= sweepAmount; sweep ++){
+		uint32_t measurement;
 
-				uint32_t distance = 0;
+		for(measurement = 0; measurement <= MeasurementAmount; measurement ++){
+			uint32_t motor_angle = calcMotorAngle(measurement, sweepDirection);
 
-				// Take an average of 3 measurements
-				uint32_t i;
-				for(i = 1; i <= 3; i ++){
-					uint32_t minLoopTime = get_rtc_low_micro() + loopTime;	// Minimum time for loop to complete
-					// Trigger sensor
-					resetSingleShot();
-					// Measure the distance;
-					distance += (read_echo() * speed_of_sound)/2000;
+			uint32_t distance = 0;
 
-					while(get_rtc_low_micro() <= minLoopTime); 			// wait for minimum looptime
-				}
-
-				distance = distance / 3;
-				if(distance == 0){
-					distance = 3000;
-				}
-
-				/*
+			// Take an average of 3 measurements
+			uint32_t i;
+			for(i = 1; i <= 3; i ++){
+				uint32_t minLoopTime = get_rtc_low_micro() + loopTime;	// Minimum time for loop to complete
 				// Trigger sensor
 				resetSingleShot();
 				// Measure the distance;
-				uint32_t distance = (read_echo() * speed_of_sound)/2000;
-				*/
-				printf("\r \n");
-				printf("\r Current measurement: %u \n", measurement);
-				
-				// Print results in terminal
-				stream_output(distance, motor_angle);
-				save_measurement(distance, motor_angle);
-		        printf("\r First: %d (%d), Second: %d (%d), Third: %d (%d) \n", closestPositions[0].distance, closestPositions[0].angle, closestPositions[1].distance, closestPositions[1].angle, closestPositions[2].distance, closestPositions[2].angle);
+				distance += (read_echo() * speed_of_sound)/2000;
 
-				setDutyCycle2(calcNewPosition(measurement, sweepDirection));
+				while(get_rtc_low_micro() <= minLoopTime); 			// wait for minimum looptime
 			}
-			sweepDirection = !sweepDirection;
+
+			// Calculate the average distance
+			distance = distance / 3;
+			// Change timeout distance to maximum sensing distance
+			if(distance == 0){
+				distance = 4000; // Maximum sensing distance of sensor
+			}
+
+			printf("\r \n");
+			printf("\r Current measurement: %u \n", measurement);
+
+			// Print results in terminal
+			stream_output(distance, motor_angle);
+			// Save measurements in array
+			if(sweepDirection == false){
+				save_measurement(distance, motor_angle, measurement);
+			}
+			else if(sweepDirection == true){
+				save_measurement(distance, motor_angle, MeasurementAmount - measurement);
+			}
+
+			printf("\r First: %d (%d), Second: %d (%d), Third: %d (%d) \n", closestMeasurements[0].distance, closestMeasurements[0].angle, closestMeasurements[1].distance, closestMeasurements[1].angle, closestMeasurements[2].distance, closestMeasurements[2].angle);
+
+			setDutyCycle2(calcNewPosition(measurement, sweepDirection));
 		}
+		sweepDirection = !sweepDirection;
 
-		// Print results in terminal
-		// stream_output(int distance, int angle);
-
-		// Move motor to next position here
-
-		// If measurements are over
-
-
-		/*
-		Print all array distances:
-		for(int i=0; i<array_element_index; i++){
-            	printf("Array distance[%d]: %d\n", i, measurements[i].distance);
-        	}
-		Sort the array:
-		bubble_sort(measurements, array_element_index);
-		*/
 	}
+
+	streamMeasurements();
+
+
+	/*
+	// Code for testing the sensors accuracy
+	initSensor(); // Stabilizes the sensor output
+	uint32_t i;
+	uint32_t distance = 0;
+	uint32_t distanceSum = 0;
+	for(i = 1; i <= 10; i ++){
+		uint32_t minLoopTime = get_rtc_low_micro() + loopTime;	// Minimum time for loop to complete
+		// Trigger sensor
+		resetSingleShot();
+		// Measure the distance;
+		distance = (read_echo() * speed_of_sound)/2000;
+		distanceSum += distance;
+		printf("\r Measurement: %u \n", i);
+		printf("\r Distance: %u \n", distance);
+		while(get_rtc_low_micro() <= minLoopTime); 			// wait for minimum looptime
+	}
+	printf("\r Distance sum: %u \n", distanceSum);
+	*/
+
+	/*
+	// Code for testing min-center-max angles of servo
+	while(1) {
+		uint32_t waitTime = get_rtc_low_micro() + 2000000;	// Minimum time for loop to complete
+		while(get_rtc_low_micro() <= waitTime);
+		setDutyCycle2(minDutyCycle);	// Minimum position of rotation.
+		waitTime = get_rtc_low_micro() + 2000000;	// Minimum time for loop to complete
+		while(get_rtc_low_micro() <= waitTime);
+		setDutyCycle2(23975);	// Middle position of rotation.
+		waitTime = get_rtc_low_micro() + 2000000;	// Minimum time for loop to complete
+		while(get_rtc_low_micro() <= waitTime);
+		setDutyCycle2(maxDutyCycle);	// Maximum position of rotation.
+	}
+	*/
+
+
+
+	// Print results in terminal
+	// stream_output(int distance, int angle);
+
+	// Move motor to next position here
+
+	// If measurements are over
+
+
+	/*
+	Print all array distances:
+	for(int i=0; i<array_element_index; i++){
+			printf("Array distance[%d]: %d\n", i, measurements[i].distance);
+		}
+	Sort the array:
+	bubble_sort(measurements, array_element_index);
+	*/
+
 }
 
 void setInputPin(uint32_t pinNumber){
@@ -179,15 +228,24 @@ void setPWMPin(uint32_t pinNumber){
 	*IOF_SEL		|= (1<<pinNumber);
 }
 
+void initSensor() {
+	resetSingleShot();
+	uint32_t waitTime = get_rtc_low_micro() + 60000;
+	while(get_rtc_low_micro() <= waitTime);
+	resetSingleShot();
+	waitTime = get_rtc_low_micro() + 60000;
+	while(get_rtc_low_micro() <= waitTime);
+	waitTime = get_rtc_low_micro() + 2000000;
+	while(get_rtc_low_micro() <= waitTime);
+}
+
 void setDutyCycle1(uint32_t dutyCycle){
 	*PWM0_1_CMP1 =((*PWM0_1_CMP0 * (100000 - dutyCycle))/100000);
 }
 
 void setPWM1(uint32_t frequency, uint32_t dutyCycle){
-	int maxComparator =  256 - 1; // Maximum 16-bit comparator value
-	//int scale = 0;
+	int maxComparator =  256 - 1; // Maximum 8-bit comparator value
 	uint32_t comparator; //= BASE_FREQUENCY / (frequency * pow(2,scale));
-
 	int scale = -1;
 
 	do
@@ -226,9 +284,7 @@ void setDutyCycle2(uint32_t dutyCycle){
 
 void setPWM2(uint32_t frequency, uint32_t dutyCycle){
 	int maxComparator =  65536 - 1; // Maximum 16-bit comparator value
-	//int scale = 0;
 	uint32_t comparator; //= BASE_FREQUENCY / (frequency * pow(2,scale));
-
 	int scale = -1;
 
 	do
@@ -283,22 +339,44 @@ void setContinuousPWM(uint32_t pinNumber, uint32_t frequency, uint32_t dutyCycle
 	setPWM2(frequency, dutyCycle);
 }
 
-void save_measurement(int distance, int angle){
-	for(int i = 0; i<3; i++){
+void save_measurement(int distance, int angle, uint32_t measurement){
 
+	// Fill empty array with first measurements
+	if(!closestPositions[measurement].distance && distance != 0){
+		closestPositions[measurement].distance = distance;
+		closestPositions[measurement].angle = angle;
+	}
+	// Replace position if it is smaller than current (and is not 0 because 0 means error)
+	if(distance < closestPositions[measurement].distance && distance != 0){
+		closestPositions[measurement].distance = distance;
+		closestPositions[measurement].angle = angle;
+	}
+
+	for(int i = 0; i<3; i++){
 		// Fill empty array with first measurements
-		if(!closestPositions[i].distance && distance != 0){
-			closestPositions[i].distance = distance;
-			closestPositions[i].angle = angle;
+		if(!closestMeasurements[i].distance && distance != 0){
+			closestMeasurements[i].distance = distance;
+			closestMeasurements[i].angle = angle;
 			break;
 		}
 		// Replace position if it is smaller than current (and is not 0 because 0 means error)
-		if(distance < closestPositions[i].distance && distance != 0){
-			closestPositions[i].distance = distance;
-			closestPositions[i].angle = angle;
+		if(distance < closestMeasurements[i].distance && distance != 0){
+			closestMeasurements[i].distance = distance;
+			closestMeasurements[i].angle = angle;
 			break;
 		}
 	}
+}
+
+void streamMeasurements(){
+	printf("\r All the closest measurements: \n");
+	for(int i = 0; i < MeasurementAmount; i++){
+		printf("\r Measurement: %u \n", i);
+		printf("\r Distance: %d \n",closestPositions[i].distance);
+		printf("\r Angle: (%f)\n", closestPositions[i].angle);
+		printf("\r \n");
+	}
+
 }
 
 void stream_output(uint32_t distance, uint32_t angle){
@@ -324,17 +402,17 @@ uint32_t read_echo(){
 	}
 }
 
-uint32_t calcMotorAngle(uint32_t curposition, bool curDirection){
+float calcMotorAngle(uint32_t curposition, bool curDirection){
+	float positionAngle = 0;
 	if(curDirection == false){
-		uint32_t deltaMeasurement = maxServoAngle / MeasurementAmount;
-		uint32_t positionAngle = deltaMeasurement * curposition;
-		return(positionAngle);
+		float deltaMeasurement = maxServoAngle / MeasurementAmount;
+		positionAngle = deltaMeasurement * curposition;
 	}
 	else if(curDirection == true){
-		uint32_t deltaMeasurement = maxServoAngle / MeasurementAmount;
-		uint32_t positionAngle = deltaMeasurement * (MeasurementAmount - curposition);
-		return(positionAngle);
+		float deltaMeasurement = maxServoAngle / MeasurementAmount;
+		positionAngle = deltaMeasurement * (MeasurementAmount - curposition);
 	}
+	return(positionAngle);
 }
 
 uint32_t calcNewPosition(uint32_t curposition, bool curDirection){
