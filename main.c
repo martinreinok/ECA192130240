@@ -103,7 +103,7 @@ int main() {
 
 	for(uint32_t sweep = 1; sweep <= sweepAmount; sweep ++){
 
-		for(uint32_t measurement = 0; measurement <= MeasurementAmount; measurement ++){
+		for(uint32_t measurement = 1; measurement <= MeasurementAmount; measurement ++){
 			uint32_t motor_angle = calcMotorAngle(measurement, sweepDirection);
 
 			uint32_t distance = 0;
@@ -219,7 +219,6 @@ void rtc_setup(){
 	printf("\r RTCregister: %u \n", *RTC_CONFIG);
 }
 
-
 uint32_t get_rtc_low(){
 	volatile uint32_t rtc_low_value = *RTC_OUTPUT_LOW;
 	return rtc_low_value;
@@ -243,7 +242,6 @@ uint32_t get_rtc_high(){
 	volatile uint32_t rtc_high_value = *RTC_OUTPUT_HIGH;
 	return rtc_high_value;
 }
-
 
 void initSensor() {
 	resetSingleShot();
@@ -335,14 +333,14 @@ void setContinuousPWM(uint32_t pinNumber, uint32_t frequency, uint32_t dutyCycle
 void save_measurement(int distance, int angle, uint32_t measurement){
 
 	// Fill empty array with first measurements
-	if(!closestPositions[measurement].distance && distance != 0){
-		closestPositions[measurement].distance = distance;
-		closestPositions[measurement].angle = angle;
+	if(!closestPositions[measurement - 1].distance && distance != 0){
+		closestPositions[measurement - 1].distance = distance;
+		closestPositions[measurement - 1].angle = angle;
 	}
 	// Replace position if it is smaller than current (and is not 0 because 0 means error)
-	if(distance < closestPositions[measurement].distance && distance != 0){
-		closestPositions[measurement].distance = distance;
-		closestPositions[measurement].angle = angle;
+	if(distance < closestPositions[measurement - 1].distance && distance != 0){
+		closestPositions[measurement - 1].distance = distance;
+		closestPositions[measurement - 1].angle = angle;
 	}
 
 	for(int i = 0; i<3; i++){
