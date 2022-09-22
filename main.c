@@ -43,11 +43,11 @@ uint32_t calcNewPosition(uint32_t curposition, bool curDirection);
 #define sweepAmount 3
 #define amountClosest 3
 #define ServoPWMFreq 200
-#define minDutyCycle 10000
-#define maxDutyCycle 37950
+#define minDutyCycle 10000 		// 10%
+#define maxDutyCycle 37950		// 37.95%
 #define maxServoAngle 130
-#define triggerDutyCycle 50000
-#define triggerPWMFreq 20000
+#define triggerDutyCycle 50000 // 50%
+#define triggerPWMFreq 50000
 static uint32_t BASE_FREQUENCY = 16000000;
 struct Measurement closestPositions [MeasurementAmount] = {}; // All the closest positions measured
 struct Measurement closestMeasurements[amountClosest] = {}; // 3 Closest positions measured
