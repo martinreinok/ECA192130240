@@ -1,10 +1,22 @@
-﻿  Compiling CUDA source file File.cu...
+﻿  Compiling CUDA source file parallelized.cu...
   
-  C:\Users\Ce\Desktop\Embedded-Architecture\red-v-project\Part_2\ECA_2_CUDA>"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\bin\nvcc.exe" -gencode=arch=compute_52,code=\"sm_52,compute_52\" --use-local-env -ccbin "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\bin\HostX86\x64" -x cu   -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\include"  -G   --keep-dir x64\Debug  -maxrregcount=0  --machine 64 --compile -cudart static  -g  -DWIN32 -DWIN64 -D_DEBUG -D_CONSOLE -D_MBCS -Xcompiler "/EHsc /W3 /nologo /Od /Fdx64\Debug\vc142.pdb /FS /Zi /RTC1 /MDd " -o C:\Users\Ce\Desktop\Embedded-Architecture\red-v-project\Part_2\ECA_2_CUDA\x64\Debug\File.cu.obj "C:\Users\Ce\Desktop\Embedded-Architecture\red-v-project\Part_2\ECA_2_CUDA\File.cu" 
-C:\Users\Ce\Desktop\Embedded-Architecture\red-v-project\Part_2\ECA_2_CUDA\File.cu(38): warning #174-D: expression has no effect
-  
-C:\Users\Ce\Desktop\Embedded-Architecture\red-v-project\Part_2\ECA_2_CUDA\File.cu(38): warning #174-D: expression has no effect
-  
-  File.cu
-C:\Users\Ce\Desktop\Embedded-Architecture\red-v-project\Part_2\ECA_2_CUDA\File.cu(14): warning C4305: 'initializing': truncation from 'double' to 'float'
+  C:\Users\Ce\Desktop\Embedded-Architecture\red-v-project\Part_2\ECA_2_CUDA>"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\bin\nvcc.exe" -gencode=arch=compute_52,code=\"sm_52,compute_52\" --use-local-env -ccbin "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\bin\HostX86\x64" -x cu   -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\include"  -G   --keep-dir x64\Debug  -maxrregcount=0  --machine 64 --compile -cudart static  -g  -DWIN32 -DWIN64 -D_DEBUG -D_CONSOLE -D_MBCS -Xcompiler "/EHsc /W3 /nologo /Od /Fdx64\Debug\vc142.pdb /FS /Zi /RTC1 /MDd " -o C:\Users\Ce\Desktop\Embedded-Architecture\red-v-project\Part_2\ECA_2_CUDA\x64\Debug\parallelized.cu.obj "C:\Users\Ce\Desktop\Embedded-Architecture\red-v-project\Part_2\ECA_2_CUDA\parallelized.cu" 
+  parallelized.cu
+C:\Users\Ce\Desktop\Embedded-Architecture\red-v-project\Part_2\ECA_2_CUDA\parallelized.cu(13): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+C:\Users\Ce\Desktop\Embedded-Architecture\red-v-project\Part_2\ECA_2_CUDA\parallelized.cu(55): warning C4477: 'printf' : format string '%d' requires an argument of type 'int', but variadic argument 1 has type '_Rep'
+          with
+          [
+              _Rep=__int64
+          ]
+  C:\Users\Ce\Desktop\Embedded-Architecture\red-v-project\Part_2\ECA_2_CUDA\parallelized.cu(55): note: consider using '%lld' in the format string
+  C:\Users\Ce\Desktop\Embedded-Architecture\red-v-project\Part_2\ECA_2_CUDA\parallelized.cu(55): note: consider using '%Id' in the format string
+  C:\Users\Ce\Desktop\Embedded-Architecture\red-v-project\Part_2\ECA_2_CUDA\parallelized.cu(55): note: consider using '%I64d' in the format string
+C:\Users\Ce\Desktop\Embedded-Architecture\red-v-project\Part_2\ECA_2_CUDA\parallelized.cu(61): warning C4477: 'printf' : format string '%d' requires an argument of type 'int', but variadic argument 1 has type '_Rep'
+          with
+          [
+              _Rep=__int64
+          ]
+  C:\Users\Ce\Desktop\Embedded-Architecture\red-v-project\Part_2\ECA_2_CUDA\parallelized.cu(61): note: consider using '%lld' in the format string
+  C:\Users\Ce\Desktop\Embedded-Architecture\red-v-project\Part_2\ECA_2_CUDA\parallelized.cu(61): note: consider using '%Id' in the format string
+  C:\Users\Ce\Desktop\Embedded-Architecture\red-v-project\Part_2\ECA_2_CUDA\parallelized.cu(61): note: consider using '%I64d' in the format string
   ECA_2_CUDA.vcxproj -> C:\Users\Ce\Desktop\Embedded-Architecture\red-v-project\Part_2\x64\Debug\ECA_2_CUDA.exe

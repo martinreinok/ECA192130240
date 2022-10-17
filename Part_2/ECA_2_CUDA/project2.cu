@@ -1,3 +1,5 @@
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -31,7 +33,7 @@ float ver_line_kernel[9] = {
 };
 
 
-int main(int argc, char* argv[]) {
+int main3(int argc, char* argv[]) {
 
     clock_t start, end;
     double cpu_time_used;
@@ -41,8 +43,10 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
+    
     int posNum = atoi(argv[1]);
     int dstNum = atoi(argv[2]);
+    printf("Positions: %d, Max Distance: %d\n", posNum, dstNum);
 
     int* distance_vector = (int*)calloc(posNum, sizeof(int));
     int* distance_matrix = (int*)calloc(posNum * dstNum, sizeof(int));
@@ -54,12 +58,14 @@ int main(int argc, char* argv[]) {
 
 
     // Implement your LOAD_DATA function here to load X number of elements and store them into distance_vector
-
+    int data[] = { 117,85,146,194,21,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,21,22,417,418,141,68,196,198,194,177,173,173,172,2101,172,172,173,149,172,172,172,173,172,175,173,173,172,171,172,100,111,101,101,100,98,98,98,88,98,99,97,98,96,96,97,98,98,96,98,98,97,98,97,97,92,96 };
+    
     // Creates matrix from input vector
     for (i = 0; i < posNum; i++) {
         int distance = distance_vector[i];
         if (distance >= dstNum) distance = dstNum - 1;
         distance_matrix[distance * posNum + i] = 255;//sets distance object
+        printf("distance_matrix[%d]: %d\n", distance * posNum + i, distance_matrix[distance * posNum + i]);
     }
 
     // Start time measure
@@ -71,7 +77,7 @@ int main(int argc, char* argv[]) {
     float sum = 0.0;
 
     // Repeat 1000 times
-    for (l = 0; l < 1000; l++) {
+    for (l = 0; l < 1; l++) {
 
         // Apply kernel for all points in the matrix
         for (y = 1; y < dstNum - 1; y++) {
@@ -80,6 +86,7 @@ int main(int argc, char* argv[]) {
                 for (k = -1; k < 2; k++) {
                     for (j = -1; j < 2; j++) {
                         sum += hor_line_kernel[(k + 1) * 3 + (j + 1)] * (float)distance_matrix[(y - k) * posNum + (x - j)];
+                        printf("y[%d] x[%d] k[%d] j[%d] | kernel[%d]: %d | matrix[%d]: %f\n", y, x, k, j, (k + 1) * 3 + (j + 1), hor_line_kernel[(k + 1) * 3 + (j + 1)], (y - k) * posNum + (x - j), distance_matrix[(y - k) * posNum + (x - j)]);
                     }
                 }
                 filtered_matrix[y * posNum + x] = sum / 255;
