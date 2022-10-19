@@ -5,8 +5,7 @@
 #include <time.h>
 #include <chrono>
 
-
-
+/*
 void increment_cpu(int size_N) {
 	int* array = (int*)calloc(size_N, sizeof(int));
 	for (int i = 0; i < size_N; i++) {
@@ -22,7 +21,7 @@ __global__ void increment_gpu_kernel(int *device_array, int size_N) {
 	// Bound threads count to the length of array
 	// In a real CUDA program usually more threads will be executed than there are elements in the array
 	if (i < size_N) {
-		device_array[i] = device_array[i] + pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, i + i * i))))))))))))))))))))))))))))))));
+		//device_array[i] = device_array[i] + pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, pow(i * i, i + i * i))))))))))))))))))))))))))))))));
 	}
 }
 
@@ -36,7 +35,7 @@ void increment_gpu(int size_N) {
 	// Block and Grid dimensions
 	dim3 grid_size(1); dim3 block_size(size_N);
 	// Launch GPU kernel
-	increment_gpu_kernel<<<grid_size, block_size>>>(device_array, size_N);
+	increment_gpu_kernel <<<grid_size, block_size>>>(device_array, size_N);
 	// Copy results back to Host memory
 	cudaMemcpy(host_array, device_array, size_N * sizeof(int), cudaMemcpyDeviceToHost);
 	// Free memory allocated
@@ -49,7 +48,7 @@ int main() {
 	int array_size = 10000000;
 	// CPU
 	auto start = std::chrono::high_resolution_clock::now();
-	increment_cpu(array_size);
+	// increment_cpu(array_size);
 	auto stop = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 	printf("\n Total time CPU = %d ms\n", duration.count());
@@ -60,3 +59,4 @@ int main() {
 	duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 	printf("\n Total time GPU = %d ms\n", duration.count());
 }
+*/
