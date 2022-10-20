@@ -1,11 +1,15 @@
-#pragma optimize("", off);
+#pragma optimize( "", off )
 
+
+#include <cuda_runtime.h>
+#include <device_launch_parameters.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include "cuda_runtime.h"
-#include "device_launch_parameters.h"
-#include <chrono>
+#include <memory.h>
+#include <malloc.h>
+
+
 
 // Example data to load from your file:
 // 117,85,146,194,21,20,20,20,20,20,20,20,20,20,20,20,20,
@@ -36,75 +40,67 @@ float ver_line_kernel[9] = {
 };
 
 
-__global__ void gpu_calculation_loop(int* distance_matrix, float* filtered_matrix, int dstNum, int posNum) {
-    int i = threadIdx.x;
-    // Bound threads count to the length of array
-    // In a real CUDA program usually more threads will be executed than there are elements in the array
+__global__ void convolution(int* distArray, float* convMat, float* result, int distIndex, int posIndex, int maskIndex, int calcAmount) {
+    // Global thread positions
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
 
-    float low_pass_kernel[9] = {
-    1.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0,
-    1.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0,
-    1.0 / 9.0, 1.0 / 9.0, 1.0 / 9.0
-    };
+    // Calculate radius of the mask
+    int r = maskIndex / 2;
 
-    // float the inputs
-    float hor_line_kernel[9] = {
-        -1.0, -1.0, -1.0,
-         2.0,  2.0,  2.0,
-        -1.0, -1.0, -1.0
-    };
+    // Calculate the start point for the element
+    int startcol = col - r;
+    int startrow = row - r;
 
-    float ver_line_kernel[9] = {
-        -1.0, 2.0, -1.0,
-        -1.0, 2.0, -1.0,
-        -1.0, 2.0, -1.0
-    };
+    // Temp value for calculation
+    int temp = 0;
 
-    int l, j, k, x, y;
-    float sum = 0.0;
-
-    // Repeat 1000 times
-    for (l = 0; l < 1000; l++) {
-        printf("%d\n", l);
-        /*
-        // Apply kernel for all points in the matrix
-        for (y = 1; y < dstNum - 1; y++) {
-            for (x = 1; x < posNum - 1; x++) {
-                sum = 0.0;
-                for (k = -1; k < 2; k++) {
-                    for (j = -1; j < 2; j++) {
-                        sum += hor_line_kernel[(k + 1) * 3 + (j + 1)] * (float)distance_matrix[(y - k) * posNum + (x - j)];
-                        printf("y[%d] x[%d] k[%d] j[%d] | kernel[%d]: %d | matrix[%d]: %f\n", y, x, k, j, (k + 1) * 3 + (j + 1), hor_line_kernel[(k + 1) * 3 + (j + 1)], (y - k) * posNum + (x - j), distance_matrix[(y - k) * posNum + (x - j)]);
-                    }
+    // go over each element of the mask
+    for (int i = 0; i < maskIndex; i++) {
+        for (int j = 0; j < maskIndex; j++) {
+            if ((startrow + i) >= -1 && (startrow + i) < 2) {
+                // range check for columns
+                if ((startcol + j) >= -1 && (startcol + j) < 2) {
+                    // Accumulate result
+                    temp += convMat[((startrow + i) + 1) * 3 + ((startcol + j) + 1)] * (float)distArray[(i - (startrow + i)) * posIndex + (j - (startcol + j))];
+                    printf("temp: %d\n", temp);
                 }
-                filtered_matrix[y * posNum + x] = sum / 255;
             }
-        }*/
+        }
     }
+    //for (int i = 0; i < maskIndex; i++) {
+    //    for (int j = 0; j < maskIndex; j++) {
+    //        if ((startrow + i) >= 0 && (startrow + i) < distIndex) {
+    //            // range check for columns
+    //            if ((startcol + j) >= 0 && (startcol + j) < posIndex) {
+    //                // Accumulate result
+    //                temp += convMat[(startrow + 1) * 3 + (startcol + 1)] * (float)distArray[(i - startrow) * posIndex + (j - startcol)];
+    //                printf("temp: %d\n",temp);
+    //            }
+    //        }
+    //    }
+    //}
+
+    // writeback the result
+    result[startrow * posIndex  + startcol] = temp;
+
+    //    // Apply kernel for all points in the matrix
+    //    for (y = 1; y < dstNum - 1; y++) {
+    //        for (x = 1; x < posNum - 1; x++) {
+    //            sum = 0.0;
+    //            for (k = -1; k < 2; k++) {
+    //                for (j = -1; j < 2; j++) {
+    //                    sum += hor_line_kernel[(k + 1) * 3 + (j + 1)] * (float)distance_matrix[(y - k) * posNum + (x - j)];
+    //                    //printf("y[%d] x[%d] k[%d] j[%d] | kernel[%d]: %d | matrix[%d]: %f\n", y, x, k, j, (k + 1) * 3 + (j + 1), hor_line_kernel[(k + 1) * 3 + (j + 1)], (y - k) * posNum + (x - j), distance_matrix[(y - k) * posNum + (x - j)]);
+    //                }
+    //            }
+    //            filtered_matrix[y * posNum + x] = sum / 255;
+    //        }
+    //    }
+    //}
 }
 
-void gpu_calculation(int* distance_matrix, float* filtered_matrix, int dstNum, int posNum) {
-    // Host memory array
-    // Already allocated
-    // GPU memory array
-    int* device_distance_matrix; cudaMalloc((void**)&distance_matrix, posNum * sizeof(int));
-    float* device_filtered_matrix; cudaMalloc((void**)&distance_matrix, posNum * sizeof(float));
-    // Copy Host memory to Device
-    cudaMemcpy(&device_distance_matrix, distance_matrix, posNum * sizeof(int), cudaMemcpyHostToDevice);
-    // Block and Grid dimensions
-    dim3 grid_size(1); dim3 block_size(posNum);
-    // Launch GPU kernel
-    gpu_calculation_loop << <grid_size, block_size >> > (distance_matrix, filtered_matrix, dstNum, posNum);
-    // Copy results back to Host memory
-    cudaMemcpy(filtered_matrix, &device_filtered_matrix, posNum * sizeof(int), cudaMemcpyDeviceToHost);
-    // Free memory allocated
-    cudaFree(device_filtered_matrix);
-    cudaFree(device_distance_matrix);
-    // for (int i = 0; i < size_N; i++) { printf("Array GPU[%d]: %d\n", i, host_array[i]);}
-}
-
-
-int main3(int argc, char* argv[]) {
+int main(int argc, char* argv[]) {
 
     clock_t start, end;
     double cpu_time_used;
@@ -130,8 +126,9 @@ int main3(int argc, char* argv[]) {
 
     // Implement your LOAD_DATA function here to load X number of elements and store them into distance_vector
     int data[] = { 117,85,146,194,21,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,21,22,417,418,141,68,196,198,194,177,173,173,172,2101,172,172,173,149,172,172,172,173,172,175,173,173,172,171,172,100,111,101,101,100,98,98,98,88,98,99,97,98,96,96,97,98,98,96,98,98,97,98,97,97,92,96 };
-    for (int i = 0; i < posNum; i++){
-        distance_vector[i] = data[i];
+    for (int d = 0; d < posNum; d++) {
+        distance_vector[d] = data[d];
+        printf("distance_vector[%d]: %d\n", d, distance_vector[d]);
     }
 
     // Creates matrix from input vector
@@ -146,9 +143,78 @@ int main3(int argc, char* argv[]) {
     start = clock();
 
     /******************* OPTIMIZE THIS ***********************/
-    int l, j, k, x, y;
-    float sum = 0.0;
-    gpu_calculation(distance_matrix, filtered_matrix, dstNum, posNum);
+
+    // Number of iterations of the calculations 
+    int calcAmount = 1000;
+
+    // Number of elements in indexed matrixed array
+    int n = posNum * dstNum;
+
+    // Bytes of indexed matrixed array
+    int bytes_n = n * sizeof(int);
+
+    // Bytes of output matrix array
+    int bytes_out = n * sizeof(float);
+
+    // Size of convolution mask (indexed matrix array)
+    int maskIndex = 9;
+
+    // Size of convolution mask in bytes
+    int bytes_maskIndex = maskIndex * sizeof(float);
+
+    // Allocate space on the device 
+    float* d_hor_line_kernel, * d_filtered_matrix;
+    int* d_distance_matrix;
+
+    cudaMalloc(&d_hor_line_kernel, bytes_maskIndex);
+    cudaMalloc(&d_filtered_matrix, bytes_out);
+    cudaMalloc(&d_distance_matrix, bytes_n);
+
+    // Copy the data to the device
+    cudaMemcpy(d_hor_line_kernel, hor_line_kernel, bytes_maskIndex, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_distance_matrix, distance_matrix, bytes_maskIndex, cudaMemcpyHostToDevice);
+
+    // Threads per Threadblock (TB)
+    int THREADS = 16;
+
+    // Number of Threadblocks (TB)
+    int GRID = (n + THREADS - 1) / THREADS;
+
+    // Dimension arguments
+    dim3 block_dim(THREADS, THREADS);
+    dim3 grid_dim(GRID, GRID);
+
+    // Call the kernel
+    convolution << <grid_dim, block_dim >> > (d_distance_matrix, d_hor_line_kernel, d_filtered_matrix, dstNum, posNum, maskIndex, calcAmount);
+
+    // Copy back the result
+    cudaMemcpy(filtered_matrix, d_filtered_matrix, bytes_out, cudaMemcpyDeviceToHost);
+
+    int x, y;
+
+    //int l, j, k, x, y;
+    //float sum = 0.0;
+
+    //// Repeat 1000 times
+    //for (l = 0; l < 1000; l++) {
+
+    //    // Apply kernel for all points in the matrix
+    //    for (y = 1; y < dstNum - 1; y++) {
+    //        for (x = 1; x < posNum - 1; x++) {
+    //            sum = 0.0;
+    //            for (k = -1; k < 2; k++) {
+    //                for (j = -1; j < 2; j++) {
+    //                    sum += hor_line_kernel[(k + 1) * 3 + (j + 1)] * (float)distance_matrix[(y - k) * posNum + (x - j)];
+    //                    //printf("y[%d] x[%d] k[%d] j[%d] | kernel[%d]: %d | matrix[%d]: %f\n", y, x, k, j, (k + 1) * 3 + (j + 1), hor_line_kernel[(k + 1) * 3 + (j + 1)], (y - k) * posNum + (x - j), distance_matrix[(y - k) * posNum + (x - j)]);
+    //                }
+    //            }
+    //            filtered_matrix[y * posNum + x] = sum / 255;
+    //        }
+    //    }
+    //}
+
+    
+
     /********************************************************/
 
         // End time measure
