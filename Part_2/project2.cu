@@ -39,8 +39,9 @@ float ver_line_kernel[9] = {
     -1.0, 2.0, -1.0
 };
 
+__constant__ float convKernal[9];
 
-__global__ void convolution(int* distArray, float* convMat, float* result, int distIndex, int posIndex, int maskIndex, int calcAmount) {
+__global__ void convolution(int* distArray, float* result, int distIndex, int posIndex, int maskIndex, int calcAmount) {
     // Global thread positions
     int col = blockIdx.x * blockDim.x + threadIdx.x;
     int row = blockIdx.y * blockDim.y + threadIdx.y;
@@ -53,37 +54,22 @@ __global__ void convolution(int* distArray, float* convMat, float* result, int d
     int startrow = row - r;
 
     // Temp value for calculation
-    int temp = 0;
+    float temp = 0;
 
     // go over each element of the mask
     for (int i = 0; i < maskIndex; i++) {
         for (int j = 0; j < maskIndex; j++) {
-            if ((startrow + i) >= -1 && (startrow + i) < 2) {
+            if ((startrow + i) >= 0 && (startrow + i) < distIndex) {
                 // range check for columns
-                if ((startcol + j) >= -1 && (startcol + j) < 2) {
+                if ((startcol + j) >= 0 && (startcol + j) < posIndex) {
                     // Accumulate result
-                    temp += convMat[((startrow + i) + 1) * 3 + ((startcol + j) + 1)] * (float)distArray[(i - (startrow + i)) * posIndex + (j - (startcol + j))];
-                    printf("temp: %d\n", temp);
+                    temp += convKernal[i * maskIndex + j] * distArray[(startrow + i) * posIndex + (startcol + j)];
+                    result[startrow * posIndex + startcol] = temp / 255;
                 }
-            }
+            }         
         }
     }
-    //for (int i = 0; i < maskIndex; i++) {
-    //    for (int j = 0; j < maskIndex; j++) {
-    //        if ((startrow + i) >= 0 && (startrow + i) < distIndex) {
-    //            // range check for columns
-    //            if ((startcol + j) >= 0 && (startcol + j) < posIndex) {
-    //                // Accumulate result
-    //                temp += convMat[(startrow + 1) * 3 + (startcol + 1)] * (float)distArray[(i - startrow) * posIndex + (j - startcol)];
-    //                printf("temp: %d\n",temp);
-    //            }
-    //        }
-    //    }
-    //}
-
-    // writeback the result
-    result[startrow * posIndex  + startcol] = temp;
-
+    
     //    // Apply kernel for all points in the matrix
     //    for (y = 1; y < dstNum - 1; y++) {
     //        for (x = 1; x < posNum - 1; x++) {
@@ -157,23 +143,24 @@ int main(int argc, char* argv[]) {
     int bytes_out = n * sizeof(float);
 
     // Size of convolution mask (indexed matrix array)
-    int maskIndex = 9;
+    int maskIndex = 3;
 
     // Size of convolution mask in bytes
-    int bytes_maskIndex = maskIndex * sizeof(float);
+    int bytes_maskIndex = (maskIndex * maskIndex) * sizeof(float);
 
     // Allocate space on the device 
     float* d_hor_line_kernel, * d_filtered_matrix;
     int* d_distance_matrix;
 
-    cudaMalloc(&d_hor_line_kernel, bytes_maskIndex);
+    //cudaMalloc(&d_hor_line_kernel, bytes_maskIndex);
     cudaMalloc(&d_filtered_matrix, bytes_out);
     cudaMalloc(&d_distance_matrix, bytes_n);
 
     // Copy the data to the device
-    cudaMemcpy(d_hor_line_kernel, hor_line_kernel, bytes_maskIndex, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_distance_matrix, distance_matrix, bytes_maskIndex, cudaMemcpyHostToDevice);
-
+    //cudaMemcpy(d_hor_line_kernel, hor_line_kernel, bytes_maskIndex, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_distance_matrix, distance_matrix, bytes_n, cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(convKernal, hor_line_kernel, bytes_maskIndex);
+    
     // Threads per Threadblock (TB)
     int THREADS = 16;
 
@@ -185,7 +172,7 @@ int main(int argc, char* argv[]) {
     dim3 grid_dim(GRID, GRID);
 
     // Call the kernel
-    convolution << <grid_dim, block_dim >> > (d_distance_matrix, d_hor_line_kernel, d_filtered_matrix, dstNum, posNum, maskIndex, calcAmount);
+    convolution << <grid_dim, block_dim >> > (d_distance_matrix, d_filtered_matrix, dstNum, posNum, maskIndex, calcAmount);
 
     // Copy back the result
     cudaMemcpy(filtered_matrix, d_filtered_matrix, bytes_out, cudaMemcpyDeviceToHost);
