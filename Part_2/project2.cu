@@ -8,8 +8,11 @@
 #include <time.h>
 #include <memory.h>
 #include <malloc.h>
+#include <string>
+#include <iostream>
+#include <fstream>
 
-
+using namespace std;
 
 // Example data to load from your file:
 // 117,85,146,194,21,20,20,20,20,20,20,20,20,20,20,20,20,
@@ -66,10 +69,10 @@ __global__ void convolution(int* distArray, float* result, int distIndex, int po
                     temp += convKernal[i * maskIndex + j] * distArray[(startrow + i) * posIndex + (startcol + j)];
                     result[startrow * posIndex + startcol] = temp / 255;
                 }
-            }         
+            }
         }
     }
-    
+
     //    // Apply kernel for all points in the matrix
     //    for (y = 1; y < dstNum - 1; y++) {
     //        for (x = 1; x < posNum - 1; x++) {
@@ -86,6 +89,34 @@ __global__ void convolution(int* distArray, float* result, int distIndex, int po
     //}
 }
 
+
+void read_file(string filename, int* output_array, int data_count, string data_delimiter) {
+    fstream data_file;
+    char file_character;
+    int temp_int = 0;
+    string temp_str;
+    data_file.open(filename, ios::in);
+
+    if (data_file.is_open()) {
+        while (data_file.good()) {
+            for (int i = 0; i < data_count; i++) {
+                temp_int = 0;
+                temp_str = "";
+                data_file.get(file_character);
+                while (file_character != data_delimiter[0]) {
+                    temp_str += file_character;
+                    data_file.get(file_character);
+                }
+                temp_int = stoi(temp_str);
+                output_array[i] = temp_int;
+            }
+            data_file.close();
+            break;
+        }
+    }
+}
+
+
 int main(int argc, char* argv[]) {
 
     clock_t start, end;
@@ -96,7 +127,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    
+
     int posNum = atoi(argv[1]);
     int dstNum = atoi(argv[2]);
     printf("Positions: %d, Max Distance: %d\n", posNum, dstNum);
@@ -111,11 +142,7 @@ int main(int argc, char* argv[]) {
 
 
     // Implement your LOAD_DATA function here to load X number of elements and store them into distance_vector
-    int data[] = { 117,85,146,194,21,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,21,22,417,418,141,68,196,198,194,177,173,173,172,2101,172,172,173,149,172,172,172,173,172,175,173,173,172,171,172,100,111,101,101,100,98,98,98,88,98,99,97,98,96,96,97,98,98,96,98,98,97,98,97,97,92,96 };
-    for (int d = 0; d < posNum; d++) {
-        distance_vector[d] = data[d];
-        printf("distance_vector[%d]: %d\n", d, distance_vector[d]);
-    }
+    read_file("data.txt", distance_vector, posNum, ",");
 
     // Creates matrix from input vector
     for (i = 0; i < posNum; i++) {
@@ -160,7 +187,7 @@ int main(int argc, char* argv[]) {
     //cudaMemcpy(d_hor_line_kernel, hor_line_kernel, bytes_maskIndex, cudaMemcpyHostToDevice);
     cudaMemcpy(d_distance_matrix, distance_matrix, bytes_n, cudaMemcpyHostToDevice);
     cudaMemcpyToSymbol(convKernal, hor_line_kernel, bytes_maskIndex);
-    
+
     // Threads per Threadblock (TB)
     int THREADS = 16;
 
@@ -200,7 +227,7 @@ int main(int argc, char* argv[]) {
     //    }
     //}
 
-    
+
 
     /********************************************************/
 
