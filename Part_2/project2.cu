@@ -44,7 +44,7 @@ float ver_line_kernel[9] = {
 
 __constant__ float convKernal[9];
 
-__global__ void convolution(int* distArray, float* result, int distIndex, int posIndex, int maskIndex, int calcAmount) {
+__global__ void convolution(int* distArray, float* result, int colIndex, int rowIndex, int maskIndex, int calcAmount) {
     // Global thread positions
     int col = blockIdx.x * blockDim.x + threadIdx.x;
     int row = blockIdx.y * blockDim.y + threadIdx.y;
@@ -58,17 +58,19 @@ __global__ void convolution(int* distArray, float* result, int distIndex, int po
 
     // Temp value for calculation
     float temp = 0;
-
-    // go over each element of the mask
-    for (int i = 0; i < maskIndex; i++) {
-        for (int j = 0; j < maskIndex; j++) {
-            // range check for row
-            if ((startrow + i) >= 0 && (startrow + i) < distIndex) {
-                // range check for column
-                if ((startcol + j) >= 0 && (startcol + j) < posIndex) {
-                    // Accumulate result
-                    temp += convKernal[i * maskIndex + j] * distArray[(startrow + i) * posIndex + (startcol + j)];
-                    result[startrow * posIndex + startcol] = temp / 255;
+    
+    if (row < rowIndex && col < colIndex){
+        // go over each element of the mask
+        for (int i = 0; i < maskIndex; i++) {
+            for (int j = 0; j < maskIndex; j++) {
+                // range check for row
+                if ((startrow + i) >= 0 && (startrow + i) < colIndex) {
+                    // range check for column
+                    if ((startcol + j) >= 0 && (startcol + j) < rowIndex) {
+                        // Accumulate result
+                        temp += convKernal[i * maskIndex + j] * distArray[(startrow + i) * rowIndex + (startcol + j)];
+                        result[startrow * rowIndex + startcol] = temp / 255;
+                    }
                 }
             }
         }
@@ -148,7 +150,7 @@ int main(int argc, char* argv[]) {
 
 
     // Implement your LOAD_DATA function here to load X number of elements and store them into distance_vector
-    //read_file("data.txt", distance_vector, posNum, ",");
+    read_file("data.txt", distance_vector, posNum, ",");
 
     // Creates matrix from input vector
     for (i = 0; i < posNum; i++) {
@@ -236,7 +238,7 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < dstNum * posNum; i++) {
         printf("[%d] CPU: %f | GPU: %f\n", i, filtered_matrix_cpu[i], filtered_matrix[i]);
     }
-    
+
     // End time measure
     end = clock();
     cpu_time_used = ((double)(end - start) / 1000) / CLOCKS_PER_SEC;
