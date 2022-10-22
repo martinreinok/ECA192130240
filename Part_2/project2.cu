@@ -232,7 +232,11 @@ int main(int argc, char* argv[]) {
         }
     }
     /********************************************************/
-
+    // Print arrays
+    for (int i = 0; i < dstNum * posNum; i++) {
+        printf("[%d] CPU: %f | GPU: %f\n", i, filtered_matrix_cpu[i], filtered_matrix[i]);
+    }
+    
     // End time measure
     end = clock();
     cpu_time_used = ((double)(end - start) / 1000) / CLOCKS_PER_SEC;
