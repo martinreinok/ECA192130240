@@ -62,8 +62,9 @@ __global__ void convolution(int* distArray, float* result, int distIndex, int po
     // go over each element of the mask
     for (int i = 0; i < maskIndex; i++) {
         for (int j = 0; j < maskIndex; j++) {
+            // range check for row
             if ((startrow + i) >= 0 && (startrow + i) < distIndex) {
-                // range check for columns
+                // range check for column
                 if ((startcol + j) >= 0 && (startcol + j) < posIndex) {
                     // Accumulate result
                     temp += convKernal[i * maskIndex + j] * distArray[(startrow + i) * posIndex + (startcol + j)];
@@ -73,20 +74,24 @@ __global__ void convolution(int* distArray, float* result, int distIndex, int po
         }
     }
 
-    //    // Apply kernel for all points in the matrix
-    //    for (y = 1; y < dstNum - 1; y++) {
-    //        for (x = 1; x < posNum - 1; x++) {
-    //            sum = 0.0;
-    //            for (k = -1; k < 2; k++) {
-    //                for (j = -1; j < 2; j++) {
-    //                    sum += hor_line_kernel[(k + 1) * 3 + (j + 1)] * (float)distance_matrix[(y - k) * posNum + (x - j)];
-    //                    //printf("y[%d] x[%d] k[%d] j[%d] | kernel[%d]: %d | matrix[%d]: %f\n", y, x, k, j, (k + 1) * 3 + (j + 1), hor_line_kernel[(k + 1) * 3 + (j + 1)], (y - k) * posNum + (x - j), distance_matrix[(y - k) * posNum + (x - j)]);
-    //                }
-    //            }
-    //            filtered_matrix[y * posNum + x] = sum / 255;
-    //        }
-    //    }
-    //}
+    /*
+    // Repeat 1000 times
+    for (l = 0; l < 1000; l++) {
+
+        // Apply kernel for all points in the matrix
+        for (y = 1; y < dstNum - 1; y++) {
+            for (x = 1; x < posNum - 1; x++) {
+                sum = 0.0;
+                for (k = -1; k < 2; k++) {
+                    for (j = -1; j < 2; j++) {
+                        sum += hor_line_kernel[(k + 1) * 3 + (j + 1)] * (float)distance_matrix[(y - k) * posNum + (x - j)];
+                    }
+                }
+                filtered_matrix[y * posNum + x] = sum / 255;
+            }
+        }
+    }
+    */
 }
 
 
@@ -135,6 +140,7 @@ int main(int argc, char* argv[]) {
     int* distance_vector = (int*)calloc(posNum, sizeof(int));
     int* distance_matrix = (int*)calloc(posNum * dstNum, sizeof(int));
     float* filtered_matrix = (float*)calloc(posNum * dstNum, sizeof(float));
+    float* filtered_matrix_cpu = (float*)calloc(posNum * dstNum, sizeof(float));
     int* threshold_matrix = (int*)calloc(posNum * dstNum, sizeof(int));
     int* new_vector = (int*)calloc(posNum, sizeof(int));
 
@@ -148,7 +154,7 @@ int main(int argc, char* argv[]) {
     for (i = 0; i < posNum; i++) {
         int distance = distance_vector[i];
         if (distance >= dstNum) distance = dstNum - 1;
-        distance_matrix[distance * posNum + i] = 255;//sets distance object
+        distance_matrix[distance * posNum + i] = 255; //sets distance object
         printf("distance_matrix[%d]: %d\n", distance * posNum + i, distance_matrix[distance * posNum + i]);
     }
 
@@ -204,34 +210,43 @@ int main(int argc, char* argv[]) {
     // Copy back the result
     cudaMemcpy(filtered_matrix, d_filtered_matrix, bytes_out, cudaMemcpyDeviceToHost);
 
-    int x, y;
+    // Wait for threads to finish calculations
+    cudaDeviceSynchronize();
 
-    //int l, j, k, x, y;
-    //float sum = 0.0;
+    int l, j, k, x, y;
+    float sum = 0.0;
 
-    //// Repeat 1000 times
-    //for (l = 0; l < 1000; l++) {
+    // Repeat 1000 times
+    for (l = 0; l < 1000; l++) {
 
-    //    // Apply kernel for all points in the matrix
-    //    for (y = 1; y < dstNum - 1; y++) {
-    //        for (x = 1; x < posNum - 1; x++) {
-    //            sum = 0.0;
-    //            for (k = -1; k < 2; k++) {
-    //                for (j = -1; j < 2; j++) {
-    //                    sum += hor_line_kernel[(k + 1) * 3 + (j + 1)] * (float)distance_matrix[(y - k) * posNum + (x - j)];
-    //                    //printf("y[%d] x[%d] k[%d] j[%d] | kernel[%d]: %d | matrix[%d]: %f\n", y, x, k, j, (k + 1) * 3 + (j + 1), hor_line_kernel[(k + 1) * 3 + (j + 1)], (y - k) * posNum + (x - j), distance_matrix[(y - k) * posNum + (x - j)]);
-    //                }
-    //            }
-    //            filtered_matrix[y * posNum + x] = sum / 255;
-    //        }
-    //    }
-    //}
-
-
-
+        // Apply kernel for all points in the matrix
+        for (y = 1; y < dstNum - 1; y++) {
+            for (x = 1; x < posNum - 1; x++) {
+                sum = 0.0;
+                for (k = -1; k < 2; k++) {
+                    for (j = -1; j < 2; j++) {
+                        sum += hor_line_kernel[(k + 1) * 3 + (j + 1)] * (float)distance_matrix[(y - k) * posNum + (x - j)];
+                    }
+                }
+                filtered_matrix_cpu[y * posNum + x] = sum / 255;
+            }
+        }
+    }
     /********************************************************/
 
-        // End time measure
+    /* Complare CPU and GPU matrixes */
+    for (int i = 0; i < posNum; i++) {
+        if (filtered_matrix_cpu[i] != filtered_matrix[i]) {
+            printf("Element[%d] does not match: %f, %f\n", i, filtered_matrix_cpu[i], filtered_matrix[i]);
+        }
+        else
+        {
+            printf("Element[%d] matches: %f\n", i, filtered_matrix[i]);
+        }
+    }
+
+
+    // End time measure
     end = clock();
     cpu_time_used = ((double)(end - start) / 1000) / CLOCKS_PER_SEC;
 
