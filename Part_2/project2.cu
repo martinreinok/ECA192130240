@@ -148,14 +148,13 @@ int main(int argc, char* argv[]) {
 
 
     // Implement your LOAD_DATA function here to load X number of elements and store them into distance_vector
-    read_file("data.txt", distance_vector, posNum, ",");
+    //read_file("data.txt", distance_vector, posNum, ",");
 
     // Creates matrix from input vector
     for (i = 0; i < posNum; i++) {
         int distance = distance_vector[i];
         if (distance >= dstNum) distance = dstNum - 1;
         distance_matrix[distance * posNum + i] = 255; //sets distance object
-        printf("distance_matrix[%d]: %d\n", distance * posNum + i, distance_matrix[distance * posNum + i]);
     }
 
     // Start time measure
@@ -233,18 +232,6 @@ int main(int argc, char* argv[]) {
         }
     }
     /********************************************************/
-
-    /* Complare CPU and GPU matrixes */
-    for (int i = 0; i < posNum; i++) {
-        if (filtered_matrix_cpu[i] != filtered_matrix[i]) {
-            printf("Element[%d] does not match: %f, %f\n", i, filtered_matrix_cpu[i], filtered_matrix[i]);
-        }
-        else
-        {
-            printf("Element[%d] matches: %f\n", i, filtered_matrix[i]);
-        }
-    }
-
 
     // End time measure
     end = clock();
