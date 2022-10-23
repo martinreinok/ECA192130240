@@ -44,7 +44,7 @@ float ver_line_kernel[9] = {
 
 __constant__ float convKernal[9];
 
-__global__ void convolution(int* distArray, float* result, int colIndex, int rowIndex, int maskIndex, int calcAmount) {
+__global__ void convolution(int* distArray, float* result, int rowIndex, int colIndex, int maskIndex, int calcAmount) {
     // Global thread positions
     int col = blockIdx.x * blockDim.x + threadIdx.x;
     int row = blockIdx.y * blockDim.y + threadIdx.y;
@@ -63,23 +63,15 @@ __global__ void convolution(int* distArray, float* result, int colIndex, int row
         // go over each element of the mask
         for (int i = 0; i < maskIndex; i++) {
             for (int j = 0; j < maskIndex; j++) {
-                // Only calculate convolution if it can be calculated
-                if (col >= 1 && row >= 1 && col < colIndex - 1 && row < rowIndex - 1) {
-                    temp += convKernal[i * maskIndex + j] * distArray[(row - (i - 1)) * rowIndex + (col - (j - 1))];
-                    result[row * rowIndex + col] = temp / 255;
-                }
-                // if ((startrow + i) >= 0 && (startrow + i) < colIndex) {
-                    // range check for column
-                //    if ((startcol + j) >= 0 && (startcol + j) < rowIndex) {
-                        // Accumulate result
-                        
-                        //                                                (y - k) * posNum + (x - j)
-                        // printf("row: %d, col: %d, rowIndex: %d, i: %d, j: %d\n", row, col, rowIndex, i, j);
-                        
-                        
 
-                    //}
-                //}
+                // Calculate convolution if convolution matrix fits into the current row/col
+                if (startcol >= 0 && col < (colIndex - r)) {
+                    if (startrow >= 0 && row < (rowIndex - r)){
+                        temp += convKernal[i * maskIndex + j] * distArray[(row - (i - 1)) * colIndex + (col - (j - 1))];
+                        result[row * colIndex + col] = temp / 255;
+                    }
+
+                }
             }
         }
     }
@@ -244,7 +236,14 @@ int main(int argc, char* argv[]) {
     /********************************************************/
     // Print arrays
     for (int i = 0; i < dstNum * posNum; i++) {
-        printf("[%d] CPU: %f | GPU: %f\n", i, filtered_matrix_cpu[i], filtered_matrix[i]);
+        if (filtered_matrix_cpu[i] != filtered_matrix[i]) {
+            printf("ERROR: [%d] CPU: %f | GPU: %f\n", i, filtered_matrix_cpu[i], filtered_matrix[i]);
+        }
+        else
+        {
+            printf("[%d] CPU & GPU: %f\n", i, filtered_matrix[i]);
+        }
+        
     }
 
     // End time measure
