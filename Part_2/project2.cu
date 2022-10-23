@@ -58,20 +58,28 @@ __global__ void convolution(int* distArray, float* result, int colIndex, int row
 
     // Temp value for calculation
     float temp = 0;
-    
+
     if (row < rowIndex && col < colIndex){
         // go over each element of the mask
         for (int i = 0; i < maskIndex; i++) {
             for (int j = 0; j < maskIndex; j++) {
-                // range check for row
-                if ((startrow + i) >= 0 && (startrow + i) < colIndex) {
-                    // range check for column
-                    if ((startcol + j) >= 0 && (startcol + j) < rowIndex) {
-                        // Accumulate result
-                        temp += convKernal[i * maskIndex + j] * distArray[(startrow + i) * rowIndex + (startcol + j)];
-                        result[startrow * rowIndex + startcol] = temp / 255;
-                    }
+                // Only calculate convolution if it can be calculated
+                if (col >= 1 && row >= 1 && col < colIndex - 1 && row < rowIndex - 1) {
+                    temp += convKernal[i * maskIndex + j] * distArray[(row - (i - 1)) * rowIndex + (col - (j - 1))];
+                    result[row * rowIndex + col] = temp / 255;
                 }
+                // if ((startrow + i) >= 0 && (startrow + i) < colIndex) {
+                    // range check for column
+                //    if ((startcol + j) >= 0 && (startcol + j) < rowIndex) {
+                        // Accumulate result
+                        
+                        //                                                (y - k) * posNum + (x - j)
+                        // printf("row: %d, col: %d, rowIndex: %d, i: %d, j: %d\n", row, col, rowIndex, i, j);
+                        
+                        
+
+                    //}
+                //}
             }
         }
     }
