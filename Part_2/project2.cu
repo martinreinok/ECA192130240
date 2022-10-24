@@ -137,11 +137,11 @@ int main(int argc, char* argv[]) {
 
 
     // Implement your LOAD_DATA function here to load X number of elements and store them into distance_vector
-    read_file("data.txt", distance_vector, posNum, ",");
+    //read_file("data.txt", distance_vector, posNum, ",");
 
-    //int data[] = { 117,85,146,194,21,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,21,22,417,418,141,68,196,198,194,177,173,173,172,2101,172,172,173,149,172,172,172,173,172,175,173,173,172,171,172,100,111,101,101,100,98,98,98,88,98,99,97,98,96,96,97,98,98,96,98,98,97,98,97,97,92,96 };
+    int data[] = { 117,85,146,194,21,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,21,22,417,418,141,68,196,198,194,177,173,173,172,2101,172,172,173,149,172,172,172,173,172,175,173,173,172,171,172,100,111,101,101,100,98,98,98,88,98,99,97,98,96,96,97,98,98,96,98,98,97,98,97,97,92,96 };
     for (int d = 0; d < posNum; d++) {
-        //distance_vector[d] = data[d];
+        distance_vector[d] = data[d];
         printf("distance_vector[%d]: %d\n", d, distance_vector[d]);
     }
 
@@ -194,11 +194,11 @@ int main(int argc, char* argv[]) {
     int THREADS = 8;
 
     // Number of Threadblocks (TB)
-    int GRID = (n + THREADS - 1) / THREADS;
+    int GRID = (n + (THREADS + THREADS) - 1) / (THREADS * THREADS);
 
     // Dimension arguments
     dim3 block_dim(THREADS, THREADS, THREADS);
-    dim3 grid_dim(GRID, GRID);
+    dim3 grid_dim(32, 32, 128);
 
     auto end_chrono = chrono::steady_clock::now();
     cout << "GPU Data Transfer time: " << chrono::duration_cast<chrono::milliseconds>(end_chrono - start_chrono).count() << " ms" << endl;
