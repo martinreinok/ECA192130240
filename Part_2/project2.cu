@@ -93,7 +93,7 @@ void read_file(string filename, int* output_array, int data_count, string data_d
 
     if (data_file.is_open()) {
         while (data_file.good()) {
-            for (int i = 0; i < data_count - 1; i++) {
+            for (int i = 0; i < data_count; i++) {
                 temp_int = 0;
                 temp_str = "";
                 data_file.get(file_character);
