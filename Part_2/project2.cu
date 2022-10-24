@@ -215,36 +215,41 @@ int main(int argc, char* argv[]) {
 
 
     int l, j, k, x, y;
-    // float sum = 0.0;
+     float sum = 0.0;
 
-    //// Repeat 1000 times
-    //for (l = 0; l < 1000; l++) {
+     // Wait for threads to finish calculations
 
-    //    // Apply kernel for all points in the matrix
-    //    for (y = 1; y < dstNum - 1; y++) {
-    //        for (x = 1; x < posNum - 1; x++) {
-    //            sum = 0.0;
-    //            for (k = -1; k < 2; k++) {
-    //                for (j = -1; j < 2; j++) {
-    //                    sum += hor_line_kernel[(k + 1) * 3 + (j + 1)] * (float)distance_matrix[(y - k) * posNum + (x - j)];
-    //                }
-    //            }
-    //            filtered_matrix_cpu[y * posNum + x] = sum / 255;
-    //        }
-    //    }
-    //}
-    /////********************************************************/
-    //// Print arrays
-    //for (int i = 0; i < dstNum * posNum; i++) {
-    //    if (filtered_matrix_cpu[i] != filtered_matrix[i]) {
-    //        printf("ERROR: [%d] CPU: %f | GPU: %f\n", i, filtered_matrix_cpu[i], filtered_matrix[i]);
-    //    }
-    //    else
-    //    {
-    //        // printf("[%d] CPU & GPU: %f\n", i, filtered_matrix[i]);
-    //    }
+    // Repeat 1000 times
+     start_chrono = chrono::steady_clock::now();
+    for (l = 0; l < 1000; l++) {
 
-    //}
+        // Apply kernel for all points in the matrix
+        for (y = 1; y < dstNum - 1; y++) {
+            for (x = 1; x < posNum - 1; x++) {
+                sum = 0.0;
+                for (k = -1; k < 2; k++) {
+                    for (j = -1; j < 2; j++) {
+                        sum += hor_line_kernel[(k + 1) * 3 + (j + 1)] * (float)distance_matrix[(y - k) * posNum + (x - j)];
+                    }
+                }
+                filtered_matrix_cpu[y * posNum + x] = sum / 255;
+            }
+        }
+    }
+    end_chrono = chrono::steady_clock::now();
+    cout << "CPU Calculation time: " << chrono::duration_cast<chrono::milliseconds>(end_chrono - start_chrono).count() << " ms" << endl;
+    ///********************************************************/
+    // Print arrays
+    for (int i = 0; i < dstNum * posNum; i++) {
+        if (filtered_matrix_cpu[i] != filtered_matrix[i]) {
+            printf("ERROR: [%d] CPU: %f | GPU: %f\n", i, filtered_matrix_cpu[i], filtered_matrix[i]);
+        }
+        else
+        {
+            // printf("[%d] CPU & GPU: %f\n", i, filtered_matrix[i]);
+        }
+
+    }
 
     // End time measure
     end = clock();
@@ -274,7 +279,7 @@ int main(int argc, char* argv[]) {
         printf("%d, ", new_vector[x]);
     }
 
-    printf("\nTotal time = %f ms\n", cpu_time_used * 1000);
+    // printf("\nTotal time = %f ms\n", cpu_time_used * 1000);
 
 
     free(distance_vector);
