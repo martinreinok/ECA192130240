@@ -193,8 +193,8 @@ int main(int argc, char* argv[]) {
     int THREADS = 8;
 
     // Dimension arguments
-    dim3 block_dim(THREADS, THREADS, THREADS);
-    dim3 grid_dim(16, 64, 128);
+    dim3 block_dim(THREADS, THREADS, 1);
+    dim3 grid_dim(16, 64, 1);
 
     auto end_chrono = chrono::steady_clock::now();
     cout << "GPU Data Transfer time: " << chrono::duration_cast<chrono::milliseconds>(end_chrono - start_chrono).count() << " ms" << endl;
@@ -206,7 +206,7 @@ int main(int argc, char* argv[]) {
     // Wait for threads to finish calculations
     cudaDeviceSynchronize();
     end_chrono = chrono::steady_clock::now();
-    cout << "GPU Calculation time: " << chrono::duration_cast<chrono::milliseconds>(end_chrono - start_chrono).count() << " ms" << endl;
+    cout << "GPU Calculation time: " << chrono::duration_cast<chrono::microseconds>(end_chrono - start_chrono).count() << " us" << endl;
 
 
     // Copy back the result
@@ -215,12 +215,12 @@ int main(int argc, char* argv[]) {
 
 
     int l, j, k, x, y;
-     float sum = 0.0;
+    float sum = 0.0;
 
-     // Wait for threads to finish calculations
+    // Wait for threads to finish calculations
 
-    // Repeat 1000 times
-     start_chrono = chrono::steady_clock::now();
+   // Repeat 1000 times
+    start_chrono = chrono::steady_clock::now();
     for (l = 0; l < 1000; l++) {
 
         // Apply kernel for all points in the matrix
