@@ -49,6 +49,7 @@ __global__ void convolution(int* distArray, float* result, int rowIndex, int col
     // Global thread positions
     int col = blockIdx.x * blockDim.x + threadIdx.x;
     int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int amt = blockIdx.z * blockDim.z + threadIdx.z;
 
     // Calculate radius of the mask
     int r = maskIndex / 2;
@@ -60,41 +61,26 @@ __global__ void convolution(int* distArray, float* result, int rowIndex, int col
     // Temp value for calculation
     float temp = 0;
 
-    if (row < rowIndex && col < colIndex) {
-        // go over each element of the mask
-        for (int i = 0; i < maskIndex; i++) {
-            for (int j = 0; j < maskIndex; j++) {
+    if (amt >= 0 && amt < calcAmount) {
+        //printf("Thread: %d", amt);
+        if (row < rowIndex && col < colIndex) {
+            // go over each element of the mask
+            for (int i = 0; i < maskIndex; i++) {
+                for (int j = 0; j < maskIndex; j++) {
 
-                // Calculate convolution if convolution matrix fits into the current row/col
-                if (startcol >= 0 && col < (colIndex - r)) {
-                    if (startrow >= 0 && row < (rowIndex - r)) {
-                        temp += convKernal[i * maskIndex + j] * distArray[(row - (i - 1)) * colIndex + (col - (j - 1))];
-                        result[row * colIndex + col] = temp / 255;
+                    // Calculate convolution if convolution matrix fits into the current row/col
+                    if (startcol >= 0 && col < (colIndex - r)) {
+                        if (startrow >= 0 && row < (rowIndex - r)) {
+                            temp += convKernal[i * maskIndex + j] * distArray[(row - (i - 1)) * colIndex + (col - (j - 1))];
+                            result[row * colIndex + col] = temp / 255;
+                        }
+
                     }
 
                 }
             }
         }
     }
-
-    /*
-    // Repeat 1000 times
-    for (l = 0; l < 1000; l++) {
-
-        // Apply kernel for all points in the matrix
-        for (y = 1; y < dstNum - 1; y++) {
-            for (x = 1; x < posNum - 1; x++) {
-                sum = 0.0;
-                for (k = -1; k < 2; k++) {
-                    for (j = -1; j < 2; j++) {
-                        sum += hor_line_kernel[(k + 1) * 3 + (j + 1)] * (float)distance_matrix[(y - k) * posNum + (x - j)];
-                    }
-                }
-                filtered_matrix[y * posNum + x] = sum / 255;
-            }
-        }
-    }
-    */
 }
 
 
@@ -151,7 +137,14 @@ int main(int argc, char* argv[]) {
 
 
     // Implement your LOAD_DATA function here to load X number of elements and store them into distance_vector
-    read_file("data.txt", distance_vector, posNum, ",");
+    //read_file("data.txt", distance_vector, posNum, ",");
+
+    int data[] = { 117,85,146,194,21,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,21,22,417,418,141,68,196,198,194,177,173,173,172,2101,172,172,173,149,172,172,172,173,172,175,173,173,172,171,172,100,111,101,101,100,98,98,98,88,98,99,97,98,96,96,97,98,98,96,98,98,97,98,97,97,92,96 };
+    for (int d = 0; d < posNum; d++) {
+        distance_vector[d] = data[d];
+        printf("distance_vector[%d]: %d\n", d, distance_vector[d]);
+    }
+
 
     // Creates matrix from input vector
     for (i = 0; i < posNum; i++) {
@@ -198,13 +191,13 @@ int main(int argc, char* argv[]) {
     cudaMemcpyToSymbol(convKernal, hor_line_kernel, bytes_maskIndex);
 
     // Threads per Threadblock (TB)
-    int THREADS = 16;
+    int THREADS = 8;
 
     // Number of Threadblocks (TB)
     int GRID = (n + THREADS - 1) / THREADS;
 
     // Dimension arguments
-    dim3 block_dim(THREADS, THREADS);
+    dim3 block_dim(THREADS, THREADS, THREADS);
     dim3 grid_dim(GRID, GRID);
 
     auto end_chrono = chrono::steady_clock::now();
@@ -218,7 +211,7 @@ int main(int argc, char* argv[]) {
     cudaDeviceSynchronize();
     end_chrono = chrono::steady_clock::now();
     cout << "GPU Calculation time: " << chrono::duration_cast<chrono::milliseconds>(end_chrono - start_chrono).count() << " ms" << endl;
-    
+
 
     // Copy back the result
     cudaMemcpy(filtered_matrix, d_filtered_matrix, bytes_out, cudaMemcpyDeviceToHost);
@@ -226,9 +219,9 @@ int main(int argc, char* argv[]) {
 
 
     int l, j, k, x, y;
-    //float sum = 0.0;
+    // float sum = 0.0;
 
-    //// Repeat 1000 times
+    // Repeat 1000 times
     //for (l = 0; l < 1000; l++) {
 
     //    // Apply kernel for all points in the matrix
@@ -240,7 +233,7 @@ int main(int argc, char* argv[]) {
     //                    sum += hor_line_kernel[(k + 1) * 3 + (j + 1)] * (float)distance_matrix[(y - k) * posNum + (x - j)];
     //                }
     //            }
-    //            filtered_matrix_cpu[y * posNum + x] = sum / 255;
+    //            filtered_matrix[y * posNum + x] = sum / 255;
     //        }
     //    }
     //}
