@@ -61,6 +61,7 @@ __global__ void convolution(int* distArray, float* result, int rowIndex, int col
     // Temp value for calculation
     float temp = 0;
 
+    // Execute function 1000 times
     if (amt >= 0 && amt < calcAmount) {
         //printf("Thread: %d", amt);
         if (row < rowIndex && col < colIndex) {
