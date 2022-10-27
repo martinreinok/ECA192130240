@@ -193,8 +193,8 @@ int main(int argc, char* argv[]) {
     int THREADS = 8;
 
     // Dimension arguments
-    dim3 block_dim(THREADS, THREADS, 1);
-    dim3 grid_dim(16, 64, 1);
+    dim3 block_dim(THREADS, THREADS, THREADS);
+    dim3 grid_dim(16, 64, 128);
 
     auto end_chrono = chrono::steady_clock::now();
     cout << "GPU Data Transfer time: " << chrono::duration_cast<chrono::milliseconds>(end_chrono - start_chrono).count() << " ms" << endl;
