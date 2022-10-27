@@ -206,7 +206,7 @@ int main(int argc, char* argv[]) {
     // Wait for threads to finish calculations
     cudaDeviceSynchronize();
     end_chrono = chrono::steady_clock::now();
-    cout << "GPU Calculation time: " << chrono::duration_cast<chrono::microseconds>(end_chrono - start_chrono).count() << " us" << endl;
+    cout << "GPU Calculation time: " << chrono::duration_cast<chrono::milliseconds>(end_chrono - start_chrono).count() << " ms" << endl;
 
 
     // Copy back the result
@@ -287,6 +287,7 @@ int main(int argc, char* argv[]) {
     free(filtered_matrix);
     free(threshold_matrix);
     free(new_vector);
-
+    cudaFree(d_filtered_matrix);
+    cudaFree(d_distance_matrix);
     return 0;
 }
