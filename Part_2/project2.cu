@@ -55,31 +55,45 @@ __global__ void convolution(int* distArray, float* result, int rowIndex, int col
     // Calculate radius of the mask
     int r = maskIndex / 2;
 
-    // Calculate the start point for the element
-    int startcol = col - r;
-    int startrow = row - r;
-
     // Temp value for calculation
     float temp = 0;
-    __syncthreads();
-    // Execute function 1000 times
-    if (amt >= 0 && amt < calcAmount) {
-        //printf("Thread: %d", amt);
-        if (row < rowIndex && col < colIndex) {
-            // go over each element of the mask
-            for (int i = 0; i < maskIndex; i++) {
-                for (int j = 0; j < maskIndex; j++) {
 
-                    // Calculate convolution if convolution matrix fits into the current row/col
-                    // Using if branch to not calculate the edges of the matrix (where to convolution does not fit)
-                    if (startcol >= 0 && col < (colIndex - r)) {
-                        if (startrow >= 0 && row < (rowIndex - r)) {
-                            temp += convKernel[i * maskIndex + j] * distArray[(row - (i - 1)) * colIndex + (col - (j - 1))];
-                            result[row * colIndex + col] = temp / 255;
-                        }
+    // Only performs calculations if the thread is inside the matrix
+    if (row < rowIndex && col < colIndex) {
+        // Calculate the function on Z axis 1000 times
+        if (amt >= 0 && amt < calcAmount) {
+            // Calculate convolution if the convolution does not go over matrix border
+            if (col - r >= 0 && col < (colIndex - r)) {
+                if (row - r >= 0 && row < (rowIndex - r)) {
+                    
+                    temp += convKernel[0 * maskIndex + 0] * distArray[(row + 1) * colIndex + (col + 1)];
+                    temp += convKernel[0 * maskIndex + 1] * distArray[(row + 1) * colIndex + (col)];
+                    temp += convKernel[0 * maskIndex + 2] * distArray[(row + 1) * colIndex + (col - 1)];
 
-                    }
+                    temp += convKernel[1 * maskIndex + 0] * distArray[row * colIndex + (col + 1)];
+                    temp += convKernel[1 * maskIndex + 1] * distArray[row * colIndex + (col)];
+                    temp += convKernel[1 * maskIndex + 2] * distArray[row * colIndex + (col - 1)];
 
+                    temp += convKernel[2 * maskIndex + 0] * distArray[(row - 1) * colIndex + (col + 1)];
+                    temp += convKernel[2 * maskIndex + 1] * distArray[(row - 1) * colIndex + (col)];
+                    temp += convKernel[2 * maskIndex + 2] * distArray[(row - 1) * colIndex + (col - 1)];
+                    
+                    /* 
+                    // Coalesced memory access (without colIndex)
+                    temp += convKernel[0 * maskIndex + 0] * distArray[(row + 1) + (col + 1)];
+                    temp += convKernel[0 * maskIndex + 1] * distArray[(row + 1) + (col)];
+                    temp += convKernel[0 * maskIndex + 2] * distArray[(row + 1) + (col - 1)];
+
+                    temp += convKernel[1 * maskIndex + 0] * distArray[row + (col + 1)];
+                    temp += convKernel[1 * maskIndex + 1] * distArray[row + (col)];
+                    temp += convKernel[1 * maskIndex + 2] * distArray[row + (col - 1)];
+
+                    temp += convKernel[2 * maskIndex + 0] * distArray[(row - 1) + (col + 1)];
+                    temp += convKernel[2 * maskIndex + 1] * distArray[(row - 1) + (col)];
+                    temp += convKernel[2 * maskIndex + 2] * distArray[(row - 1) + (col - 1)];
+                    */
+
+                    result[row * colIndex + col] = temp / 255;
                 }
             }
         }
@@ -127,7 +141,7 @@ int main(int argc, char* argv[]) {
 
     int posNum = atoi(argv[1]);
     int dstNum = atoi(argv[2]);
-    printf("Positions: %d, Max Distance: %d\n", posNum, dstNum);
+    printf("Positions: %d, Distance Number: %d\n", posNum, dstNum);
 
     int* distance_vector = (int*)calloc(posNum, sizeof(int));
     int* distance_matrix = (int*)calloc(posNum * dstNum, sizeof(int));
@@ -152,6 +166,9 @@ int main(int argc, char* argv[]) {
         if (distance >= dstNum) distance = dstNum - 1;
         distance_matrix[distance * posNum + i] = 255; //sets distance object
     }
+
+    // Create coalesced matrix from input vector
+
 
     // Start time measure
     start = clock();
