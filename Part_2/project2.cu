@@ -71,6 +71,7 @@ __global__ void convolution(int* distArray, float* result, int rowIndex, int col
                 for (int j = 0; j < maskIndex; j++) {
 
                     // Calculate convolution if convolution matrix fits into the current row/col
+                    // Using if branch to not calculate the edges of the matrix (where to convolution does not fit)
                     if (startcol >= 0 && col < (colIndex - r)) {
                         if (startrow >= 0 && row < (rowIndex - r)) {
                             temp += convKernel[i * maskIndex + j] * distArray[(row - (i - 1)) * colIndex + (col - (j - 1))];
@@ -134,7 +135,6 @@ int main(int argc, char* argv[]) {
     float* filtered_matrix_cpu = (float*)calloc(posNum * dstNum, sizeof(float));
     int* threshold_matrix = (int*)calloc(posNum * dstNum, sizeof(int));
     int* new_vector = (int*)calloc(posNum, sizeof(int));
-
     int i;
 
 
@@ -157,7 +157,7 @@ int main(int argc, char* argv[]) {
     start = clock();
     auto start_chrono = chrono::steady_clock::now();
 
-    ///******************* OPTIMIZE THIS ***********************/
+    ///******************* GPU ***********************/
 
     // Number of iterations of the calculations 
     int calcAmount = 1000;
@@ -206,6 +206,8 @@ int main(int argc, char* argv[]) {
 
     // Wait for threads to finish calculations
     cudaDeviceSynchronize();
+
+    // End time measurement
     end_chrono = chrono::steady_clock::now();
     cout << "GPU Calculation time: " << chrono::duration_cast<chrono::milliseconds>(end_chrono - start_chrono).count() << " ms" << endl;
 
@@ -213,13 +215,12 @@ int main(int argc, char* argv[]) {
     // Copy back the result
     cudaMemcpy(filtered_matrix, d_filtered_matrix, bytes_out, cudaMemcpyDeviceToHost);
 
+    ///******************* GPU END ***********************/
 
 
+    ///******************* CPU (NOT OPTIMIZED) ***********************/
     int l, j, k, x, y;
     float sum = 0.0;
-
-    // Wait for threads to finish calculations
-
    // Repeat 1000 times
     start_chrono = chrono::steady_clock::now();
     for (l = 0; l < 1000; l++) {
@@ -237,10 +238,12 @@ int main(int argc, char* argv[]) {
             }
         }
     }
+    ///******************* CPU END ***********************/
+
     end_chrono = chrono::steady_clock::now();
     cout << "CPU Calculation time: " << chrono::duration_cast<chrono::milliseconds>(end_chrono - start_chrono).count() << " ms" << endl;
-    ///********************************************************/
-    // Print arrays
+    
+    // GPU and CPU output verification
     for (int i = 0; i < dstNum * posNum; i++) {
         if (filtered_matrix_cpu[i] != filtered_matrix[i]) {
             printf("ERROR: [%d] CPU: %f | GPU: %f\n", i, filtered_matrix_cpu[i], filtered_matrix[i]);
@@ -281,8 +284,7 @@ int main(int argc, char* argv[]) {
     }
 
     // printf("\nTotal time = %f ms\n", cpu_time_used * 1000);
-
-
+    
     free(distance_vector);
     free(distance_matrix);
     free(filtered_matrix);
