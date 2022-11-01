@@ -58,43 +58,40 @@ __global__ void convolution(int* distArray, float* result, int rowIndex, int col
     // Temp value for calculation
     float temp = 0;
 
-    // Only performs calculations if the thread is inside the matrix
-    if (row < rowIndex && col < colIndex) {
-        // Calculate the function on Z axis 1000 times
-        if (amt >= 0 && amt < calcAmount) {
-            // Calculate convolution if the convolution does not go over matrix border
-            if (col - r >= 0 && col < (colIndex - r)) {
-                if (row - r >= 0 && row < (rowIndex - r)) {
+    // Calculate the function on Z axis 1000 times
+    if (amt >= 0 && amt < calcAmount) {
+        // Calculate convolution if the convolution does not go over matrix border
+        if (col - r >= 0 && col < (colIndex - r)) {
+            if (row - r >= 0 && row < (rowIndex - r)) {
                     
-                    temp += convKernel[0 * maskIndex + 0] * distArray[(row + 1) * colIndex + (col + 1)];
-                    temp += convKernel[0 * maskIndex + 1] * distArray[(row + 1) * colIndex + (col)];
-                    temp += convKernel[0 * maskIndex + 2] * distArray[(row + 1) * colIndex + (col - 1)];
+                temp += convKernel[0 * maskIndex + 0] * distArray[(row + 1) * colIndex + (col + 1)];
+                temp += convKernel[0 * maskIndex + 1] * distArray[(row + 1) * colIndex + (col)];
+                temp += convKernel[0 * maskIndex + 2] * distArray[(row + 1) * colIndex + (col - 1)];
 
-                    temp += convKernel[1 * maskIndex + 0] * distArray[row * colIndex + (col + 1)];
-                    temp += convKernel[1 * maskIndex + 1] * distArray[row * colIndex + (col)];
-                    temp += convKernel[1 * maskIndex + 2] * distArray[row * colIndex + (col - 1)];
+                temp += convKernel[1 * maskIndex + 0] * distArray[row * colIndex + (col + 1)];
+                temp += convKernel[1 * maskIndex + 1] * distArray[row * colIndex + (col)];
+                temp += convKernel[1 * maskIndex + 2] * distArray[row * colIndex + (col - 1)];
 
-                    temp += convKernel[2 * maskIndex + 0] * distArray[(row - 1) * colIndex + (col + 1)];
-                    temp += convKernel[2 * maskIndex + 1] * distArray[(row - 1) * colIndex + (col)];
-                    temp += convKernel[2 * maskIndex + 2] * distArray[(row - 1) * colIndex + (col - 1)];
+                temp += convKernel[2 * maskIndex + 0] * distArray[(row - 1) * colIndex + (col + 1)];
+                temp += convKernel[2 * maskIndex + 1] * distArray[(row - 1) * colIndex + (col)];
+                temp += convKernel[2 * maskIndex + 2] * distArray[(row - 1) * colIndex + (col - 1)];
                     
-                    /* 
-                    // Coalesced memory access (without colIndex)
-                    temp += convKernel[0 * maskIndex + 0] * distArray[(row + 1) + (col + 1)];
-                    temp += convKernel[0 * maskIndex + 1] * distArray[(row + 1) + (col)];
-                    temp += convKernel[0 * maskIndex + 2] * distArray[(row + 1) + (col - 1)];
+                /* 
+                // Coalesced memory access (without colIndex)
+                temp += convKernel[0 * maskIndex + 0] * distArray[(row + 1) + (col + 1)];
+                temp += convKernel[0 * maskIndex + 1] * distArray[(row + 1) + (col)];
+                temp += convKernel[0 * maskIndex + 2] * distArray[(row + 1) + (col - 1)];
 
-                    temp += convKernel[1 * maskIndex + 0] * distArray[row + (col + 1)];
-                    temp += convKernel[1 * maskIndex + 1] * distArray[row + (col)];
-                    temp += convKernel[1 * maskIndex + 2] * distArray[row + (col - 1)];
+                temp += convKernel[1 * maskIndex + 0] * distArray[row + (col + 1)];
+                temp += convKernel[1 * maskIndex + 1] * distArray[row + (col)];
+                temp += convKernel[1 * maskIndex + 2] * distArray[row + (col - 1)];
 
-                    temp += convKernel[2 * maskIndex + 0] * distArray[(row - 1) + (col + 1)];
-                    temp += convKernel[2 * maskIndex + 1] * distArray[(row - 1) + (col)];
-                    temp += convKernel[2 * maskIndex + 2] * distArray[(row - 1) + (col - 1)];
-                    */
+                temp += convKernel[2 * maskIndex + 0] * distArray[(row - 1) + (col + 1)];
+                temp += convKernel[2 * maskIndex + 1] * distArray[(row - 1) + (col)];
+                temp += convKernel[2 * maskIndex + 2] * distArray[(row - 1) + (col - 1)];
+                */
 
-                    result[row * colIndex + col] = temp / 255;
-                }
+                result[row * colIndex + col] = temp / 255;
             }
         }
     }
@@ -170,7 +167,7 @@ int main(int argc, char* argv[]) {
     // Create coalesced matrix from input vector
 
 
-    // Start time measure
+    // Start time measure for GPU memory allocation
     start = clock();
     auto start_chrono = chrono::steady_clock::now();
 
@@ -265,11 +262,6 @@ int main(int argc, char* argv[]) {
         if (filtered_matrix_cpu[i] != filtered_matrix[i]) {
             printf("ERROR: [%d] CPU: %f | GPU: %f\n", i, filtered_matrix_cpu[i], filtered_matrix[i]);
         }
-        else
-        {
-            // printf("[%d] CPU & GPU: %f\n", i, filtered_matrix[i]);
-        }
-
     }
 
     // End time measure
